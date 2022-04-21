@@ -26,7 +26,7 @@ tell me using discussions.
 Download `fix_lwjgl.py` onto your computer, ensure Python 3 is installed, and use pip to
 install everything in `requirements.txt`
 
-```
+```bash
 wget https://raw.githubusercontent.com/CoolCat467/fix-lwjgl/HEAD/fix_lwjgl.py && pip install aiohttp async-timeout && chmod +x fix_lwjgl.py
 ```
 The first time you run Minecraft using this wrapper, if the user defined lwjgl directory
@@ -43,7 +43,7 @@ set a "wrapper command". Set it to `fix_lwjgl.py` and everything *should* be goo
 
 On Raspberry Pi OS bullseye in particular, it might be useful to have this "pre-launch"
 command if you are experiencing crashes:
-```
+```bash
 export MESA_GL_VERSION_OVERRIDE=4.2COMPAT
 ```
 This tells mesa gl to pretend it's OpenGL 4.2, which stops Minecraft from trying to do
@@ -56,7 +56,7 @@ When posting your issue, be sure to include any relevant logs and what operating
 you're using and what architecture your computer's processor uses.
 
 Additionally, re-running Minecraft with the additional arguments
-```
+```bash
 -Dorg.lwjgl.util.DebugLoader=true -Dorg.lwjgl.util.Debug=true
 ```
 might help diagnose your issue. Just be sure to remove them after everything is
