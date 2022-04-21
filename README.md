@@ -47,3 +47,11 @@ If you encounter any issues regarding this program, please check and see if anyo
 having the same issue before making a new issue.
 When posting your issue, be sure to include any relevant logs and what operating system
 you're using and what architecture your computer's processor uses.
+
+Additionally, re-running Minecraft with the additional arguments
+```
+-Dorg.lwjgl.util.DebugLoader=true -Dorg.lwjgl.util.Debug=true
+```
+might help diagnose your issue. Just be sure to remove them after everything is
+fixed, because OpenGL errors cause crashes in debug mode instead of just being silently
+ignored.
