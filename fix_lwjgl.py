@@ -37,7 +37,7 @@
 
 __title__ = 'Fix-LWJGL'
 __author__ = 'CoolCat467'
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 import os
 import sys
@@ -344,11 +344,6 @@ def rewrite_mc_args(mc_args: list) -> list:
     else:
         log('LWJGL library path is set to "{lib_path}"')
         BASE_FOLDER = lib_path
-    
-    # Make sure it really exists
-    if not os.path.exists(lib_path) and lwjgl_vers == 2:
-        log(f'"{lib_path}" does not exist!', 1)
-        sys.exit(1)
     
     classpath = mc_args[cls_path+1].split(os.pathsep)
     
