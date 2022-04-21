@@ -27,8 +27,15 @@ Download `fix_lwjgl.py` onto your computer, ensure Python 3 is installed, and us
 install everything in `requirements.txt`
 
 ```
-wget https://raw.githubusercontent.com/CoolCat467/fix-lwjgl/HEAD/fix_lwjgl.py && pip install aiohttp>=3.8.1 async-timeout>=4.0.2
+wget https://raw.githubusercontent.com/CoolCat467/fix-lwjgl/HEAD/fix_lwjgl.py && pip install aiohttp async-timeout && chmod +x fix_lwjgl.py
 ```
+The first time you run Minecraft using this wrapper, if the user defined lwjgl directory
+does not exist in the case of LWJGL 2 or any of the modules are not found in LWJGL 3,
+the wrapper will automatically download all the files required.
+
+If it needs the lwjgl 2 folder, it will download the folders in this repository.
+If it needs any lwjgl 3 modules, it will download them from lwjgl's build repository
+available to browse at https://www.lwjgl.org/browse
 
 ## Usage
 Go to your Minecraft launcher, and somewhere in settings is likely the ability to
