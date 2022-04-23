@@ -51,7 +51,7 @@ from typing import Final
 import aiohttp
 import async_timeout
 
-BASE_FOLDER = '~/lwjgl'
+BASE_FOLDER = os.path.join('~', 'lwjgl')
 
 OS: Final = platform.system().lower()
 ARCH = platform.machine()
