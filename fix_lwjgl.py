@@ -37,7 +37,7 @@
 
 __title__ = 'Fix-LWJGL'
 __author__ = 'CoolCat467'
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 
 import os
 import sys
@@ -54,22 +54,28 @@ import async_timeout
 BASE_FOLDER = os.path.join('~', 'lwjgl')
 
 OS: Final = platform.system().lower()
-ARCH = platform.machine()
+ARCH = platform.machine().lower()
 
 ARCH_RENAME: Final = {
     'aarch64': 'arm64',
-    'x86_64' : 'x86'
+    'amd64': 'x64'
 }
 
 ARCH = ARCH_RENAME.get(ARCH, ARCH)
 TIMEOUT: Final = 5
+
+ARCH_IGNORE: Final = {
+    'x86_64',
+    'amd32'
+}
 
 # SO files in lwjgl build repo that don't start with
 # "lwjgl_"
 NOPRE_SO: Final = (
     'assimp', 'bgfx', 'glfw',
     'jemalloc', 'openal', 'opus',
-    'shaderc', 'spirv-cross'
+    'shaderc', 'spirv-cross',
+    'OpenAL',
 )
 
 # Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
@@ -143,18 +149,25 @@ class Module:
     @property
     def so_file(self) -> str:
         ".so filename for this module"
+        pre = 'lib'
+        end = 'so'
+        if OS == 'windows':
+            pre = ''
+            end = 'dll'
         if not '-' in self.name:
-            return f'lib{self.name}.so'
+            return f'{pre}{self.name}.{end}'
         base = self.name.split('-')[1]
         if base in NOPRE_SO:
-            return f'lib{base}.so'
+            if OS == 'windows' and base == 'openal':# Strange oddity
+                base = 'OpenAL'
+            return f'{pre}{base}.{end}'
         name = self.name.replace('-', '_')
-        return f'lib{name}.so'
+        return f'{pre}{name}.{end}'
     
     @property
     def filenames(self) -> tuple:
         "Tuple of module jar, module natives jar, and so file."
-        natives_vers = f'{OS}-{ARCH}' if ARCH != 'x86_64' else OS
+        natives_vers = f'{OS}-{ARCH}' if ARCH in ARCH_IGNORE else OS
         return (f'{self.name}.jar',
                 f'{self.name}-natives-{natives_vers}.jar',
                 self.so_file)
@@ -162,7 +175,7 @@ class Module:
     @property
     def file_paths(self) -> tuple:
         "Tuple of lwjgl repository paths to module jar, module natives jar, and so file."
-        natives_vers = f'{OS}-{ARCH}' if ARCH != 'x86' else OS
+        natives_vers = f'{OS}-{ARCH}' if ARCH in ARCH_IGNORE else OS
         return (f'bin/{self.name}/{self.name}.jar',
                 f'bin/{self.name}/{self.name}-natives-{natives_vers}.jar',
                 f'{OS}/{ARCH}/{self.so_file}')
@@ -177,7 +190,7 @@ async def download_file(url: str, folder: str, timeout: int, **sessionkwargs) ->
     filepath = os.path.join(folder, filename)
     data = await download_coroutine(url, timeout, **sessionkwargs)
     if b'<?xml version="1.0" encoding="UTF-8"?>\n<Error>' in data or b'404: Not Found' in data:
-        raise IOError(f'"{filename}" does not exist!')
+        raise IOError(f'"{filename}" does not exist acording to "{url}"!')
     with open(filepath, 'wb') as sfile:
         sfile.write(data)
     return filepath
