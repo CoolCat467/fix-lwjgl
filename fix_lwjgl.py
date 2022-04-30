@@ -37,7 +37,7 @@
 
 __title__ = 'Fix-LWJGL'
 __author__ = 'CoolCat467'
-__version__ = '1.0.3'
+__version__ = '1.0.4'
 
 import os
 import sys
@@ -46,7 +46,7 @@ import subprocess
 from configparser import ConfigParser
 import asyncio
 import json
-from typing import Final
+from typing import Final, Iterable
 
 import aiohttp
 import async_timeout
@@ -57,8 +57,18 @@ OS: Final = platform.system().lower()
 ARCH = platform.machine().lower()
 
 ARCH_RENAME: Final = {
-    'aarch64': 'arm64',
-    'amd64': 'x64'
+    'i386'      : 'x86_64',
+    'i686'      : 'x86_64',
+    'aarch64'   : 'arm64',
+    'aarch64_be': 'arm64',
+    'armv8b'    : 'arm64',
+    'armv8l'    : 'arm64',
+    'armv8'     : 'arm64',
+    'armhf'     : 'arm32',
+    'armv7b'    : 'arm32',
+    'armv7l'    : 'arm32',
+    'armv7'     : 'arm32',
+    'amd64'     : 'x64'
 }
 
 ARCH = ARCH_RENAME.get(ARCH, ARCH)
@@ -77,6 +87,12 @@ NOPRE_SO: Final = (
     'shaderc', 'spirv-cross',
     'OpenAL',
 )
+
+ARCH_PATH_RENAME: Final = {
+    'linux/x86_64' : 'linux/x64',
+    'darwin/x86_64': 'macosx/x64',
+    'darwin/arm64' : 'macosx/arm64',
+}
 
 # Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
 async def download_coroutine(url: str, timeout: int=TIMEOUT, **sessionkwargs) -> bytes:
@@ -135,7 +151,7 @@ def get_lwjgl_file_url(filepath: str, lwjgl_vers: str='latest', branch: str='rel
     return f'https://build.lwjgl.org/{branch}/{lwjgl_vers}/{filepath}'
 
 class Module:
-    "LWJGL Module class"
+    "LWJGL Module class. Has filenames and file download paths."
     __slots__: tuple = ('name',)
     def __init__(self, name: str) -> None:
         self.name = name
@@ -167,7 +183,7 @@ class Module:
     @property
     def filenames(self) -> tuple:
         "Tuple of module jar, module natives jar, and so file."
-        natives_vers = f'{OS}-{ARCH}' if ARCH in ARCH_IGNORE else OS
+        natives_vers = OS if ARCH in ARCH_IGNORE else f'{OS}-{ARCH}'
         return (f'{self.name}.jar',
                 f'{self.name}-natives-{natives_vers}.jar',
                 self.so_file)
@@ -175,14 +191,22 @@ class Module:
     @property
     def file_paths(self) -> tuple:
         "Tuple of lwjgl repository paths to module jar, module natives jar, and so file."
-        natives_vers = f'{OS}-{ARCH}' if ARCH in ARCH_IGNORE else OS
+        natives_vers = OS if ARCH in ARCH_IGNORE else f'{OS}-{ARCH}'
+        arch_path = f'{OS}/{ARCH}'
+        arch_path = ARCH_PATH_RENAME.get(arch_path, arch_path)
         return (f'bin/{self.name}/{self.name}.jar',
                 f'bin/{self.name}/{self.name}-natives-{natives_vers}.jar',
-                f'{OS}/{ARCH}/{self.so_file}')
+                f'{arch_path}/{self.so_file}')
     
     def __iter__(self):
         "Return iterator of self.filenames"
         return iter(self.filenames)
+
+def test_modules() -> None:
+    "Test modules system"
+    modules = list(map(Module, ('glfw', 'lwjgl', 'opengl', 'stb', 'openal', 'tinyfd')))
+    for module in modules:
+        print('\n'.join(module.file_paths))
 
 async def download_file(url: str, folder: str, timeout: int, **sessionkwargs) -> str:
     "Download files into given folder. Return file path saved to."
@@ -215,7 +239,7 @@ def download_lwjgl_files(urls: list, lwjgl_folder: str) -> None:
     for path in new_files:
         os.chmod(path, 0o755)
 
-def download_lwjgl3_files(modules: list, lwjgl_folder: str,
+def download_lwjgl3_files(modules: Iterable, lwjgl_folder: str,
                           lwjgl_vers: str='latest',
                           branch: str='release') -> None:
     "Download lwjgl 3 files given modules and lwjgl folder."
@@ -283,10 +307,6 @@ def download_lwjgl2_files(lwjgl_folder: str) -> None:
 
 def rewrite_classpath_lwjgl2(classpath: list) -> list:
     "Rewrite java classpath for lwjgl 2"
-    # Keeping below for the time being, but
-    # I think that simply adding LWJGL 2 library
-    # path is good enough.
-    
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}2{ARCH}')
     
     download = False
@@ -301,6 +321,10 @@ def rewrite_classpath_lwjgl2(classpath: list) -> list:
         else:
             log(f'Please create "{new_lwjgl}" or run with "-noop" flag', 1)
             sys.exit(1)
+    
+    # Keeping below for the time being, but
+    # I think that simply adding LWJGL 2 library
+    # path is good enough.
     
 ##    new_cls = []
 ##    find = set()
@@ -320,7 +344,6 @@ def rewrite_classpath_lwjgl2(classpath: list) -> list:
 ##        find.add(f'{module}.jar')
 ##    log(find)
 ##    new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}2{ARCH}')
-##    arch = ARCH if ARCH != 'arm64' else 'aarch64'
 ##    for f in os.listdir(new_lwjgl):
 ##        if f.endswith('.jar'):
 ##            if f in find or f'-natives-{OS}-{arch}' in f:
@@ -340,6 +363,7 @@ def rewrite_mc_args(mc_args: list) -> list:
     
     mc_vers = tuple(map(int, mc_args[mc_args.index('--version')+1].split('.')))
     lwjgl_vers = 2 if mc_vers < (1, 13) else 3
+    #TODO: Find exact snapshot it was changed to 3 for.
     
     lib_path = None
     for arg in mc_args:
@@ -402,7 +426,15 @@ def run() -> None:
     if rewrite_config:
         log(f'Writing config file to "{conf_file}"')
         config.clear()
-        config.read_dict({'main': {'lwjgl_base_path': os.path.expanduser(BASE_FOLDER)}})
+        config.read_dict(
+            {
+                'main':
+                {
+                    'lwjgl_base_path':
+                    os.path.expanduser(BASE_FOLDER)
+                }
+            }
+        )
         
         with open(conf_file, 'w', encoding='utf-8') as file_point:
             config.write(file_point)
