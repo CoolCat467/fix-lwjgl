@@ -37,7 +37,7 @@
 
 __title__ = 'Fix-LWJGL'
 __author__ = 'CoolCat467'
-__version__ = '1.0.4'
+__version__ = '1.1.0'
 
 import os
 import sys
@@ -49,11 +49,17 @@ import json
 from typing import Final, Iterable
 
 import aiohttp
-import async_timeout
 
 BASE_FOLDER = os.path.join('~', 'lwjgl')
+TIMEOUT = None
 
-OS: Final = platform.system().lower()
+OS = platform.system().lower()
+
+OS_RENAME: Final = {
+    'darwin': 'macos'
+}
+OS = OS_RENAME.get(OS, OS)
+
 ARCH = platform.machine().lower()
 
 ARCH_RENAME: Final = {
@@ -68,15 +74,15 @@ ARCH_RENAME: Final = {
     'armv7b'    : 'arm32',
     'armv7l'    : 'arm32',
     'armv7'     : 'arm32',
-    'amd64'     : 'x64'
+    'amd64'     : 'x64',
+    'amd32'     : 'x32'
 }
 
 ARCH = ARCH_RENAME.get(ARCH, ARCH)
-TIMEOUT: Final = 5
 
 ARCH_IGNORE: Final = {
     'x86_64',
-    'amd32'
+    'x32'
 }
 
 # SO files in lwjgl build repo that don't start with
@@ -85,32 +91,14 @@ NOPRE_SO: Final = (
     'assimp', 'bgfx', 'glfw',
     'jemalloc', 'openal', 'opus',
     'shaderc', 'spirv-cross',
-    'OpenAL',
+    'moltenvk'
 )
 
 ARCH_PATH_RENAME: Final = {
     'linux/x86_64' : 'linux/x64',
-    'darwin/x86_64': 'macosx/x64',
-    'darwin/arm64' : 'macosx/arm64',
+    'macos/x86_64': 'macosx/x64',
+    'macos/arm64' : 'macosx/arm64',
 }
-
-# Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
-async def download_coroutine(url: str, timeout: int=TIMEOUT, **sessionkwargs) -> bytes:
-    "Return content bytes found at url."
-    # Make a session with our event loop
-    async with aiohttp.ClientSession(**sessionkwargs) as session:
-        # Make sure we have a timeout, so that in the event of
-        # network failures or something code doesn't get stuck
-        async with async_timeout.timeout(timeout):
-            # Go to the url and get response
-            async with session.get(url) as response:
-                # Wait for our response
-                request_result = await response.content.read()
-                # Close response socket/file descriptor
-                response.close()
-        # Close session
-        await session.close()
-    return request_result
 
 # Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
 def get_paths(jdict: dict) -> list:
@@ -139,6 +127,19 @@ def get_address(user: str, repo: str, branch: str, path: str) -> str:
     "Get raw github user content url of a specific file."
     return f'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}'
 
+async def download_coroutine(session: aiohttp.ClientSession, url: str) -> bytes:
+    "Return content bytes found at url."
+    # Go to the url and get response
+    try:
+        async with session.get(url) as response:
+            # Wait for our response
+            data = await response.content.read()
+            response.close()
+    except asyncio.exceptions.TimeoutError:
+        log(f'Timeout Error while downloading from "{url}"', 1)
+        raise
+    return data
+
 def log(msg: str, level: int=0) -> None:
     "Log message."
     lvl = ('INFO', 'ERROR')[level]
@@ -163,19 +164,23 @@ class Module:
         return self.name
     
     @property
-    def so_file(self) -> str:
-        ".so filename for this module"
+    def system_library(self) -> str:
+        "System library for this module"
         pre = 'lib'
         end = 'so'
-        if OS == 'windows':
+        if OS == 'macos':
+            end = 'dylib'
+        elif OS == 'windows':
             pre = ''
             end = 'dll'
         if not '-' in self.name:
             return f'{pre}{self.name}.{end}'
         base = self.name.split('-')[1]
-        if base in NOPRE_SO:
+        if base.lower() in NOPRE_SO:
             if OS == 'windows' and base == 'openal':# Strange oddity
                 base = 'OpenAL'
+            elif os == 'macos' and base == 'moltenvk':
+                base = 'MoltenVK'
             return f'{pre}{base}.{end}'
         name = self.name.replace('-', '_')
         return f'{pre}{name}.{end}'
@@ -186,17 +191,19 @@ class Module:
         natives_vers = OS if ARCH in ARCH_IGNORE else f'{OS}-{ARCH}'
         return (f'{self.name}.jar',
                 f'{self.name}-natives-{natives_vers}.jar',
-                self.so_file)
+##                self.system_library)
+                )
     
     @property
     def file_paths(self) -> tuple:
         "Tuple of lwjgl repository paths to module jar, module natives jar, and so file."
         natives_vers = OS if ARCH in ARCH_IGNORE else f'{OS}-{ARCH}'
-        arch_path = f'{OS}/{ARCH}'
-        arch_path = ARCH_PATH_RENAME.get(arch_path, arch_path)
+##        arch_path = f'{OS}/{ARCH}'
+##        arch_path = ARCH_PATH_RENAME.get(arch_path, arch_path)
         return (f'bin/{self.name}/{self.name}.jar',
                 f'bin/{self.name}/{self.name}-natives-{natives_vers}.jar',
-                f'{arch_path}/{self.so_file}')
+##                f'{arch_path}/{self.system_library}')
+                )
     
     def __iter__(self):
         "Return iterator of self.filenames"
@@ -204,42 +211,46 @@ class Module:
 
 def test_modules() -> None:
     "Test modules system"
-    modules = list(map(Module, ('glfw', 'lwjgl', 'opengl', 'stb', 'openal', 'tinyfd')))
+    names = ('lwjgl', 'lwjgl-jemalloc', 'lwjgl-openal', 'lwjgl-opengl', 'lwjgl-glfw', 'lwjgl-stb', 'lwjgl-tinyfd')
+    modules = list(map(Module, names))
     for module in modules:
         print('\n'.join(module.file_paths))
 
-async def download_file(url: str, folder: str, timeout: int, **sessionkwargs) -> str:
+async def download_file(session: aiohttp.ClientSession, url: str, folder: str) -> str:
     "Download files into given folder. Return file path saved to."
     filename = url.split('/')[-1]
     filepath = os.path.join(folder, filename)
-    data = await download_coroutine(url, timeout, **sessionkwargs)
+    if os.path.exists(filepath):
+        return filepath
+    data = await download_coroutine(session, url)
     if b'<?xml version="1.0" encoding="UTF-8"?>\n<Error>' in data or b'404: Not Found' in data:
         raise IOError(f'"{filename}" does not exist acording to "{url}"!')
     with open(filepath, 'wb') as sfile:
         sfile.write(data)
     return filepath
 
-async def download_files(urls: list, folder: str, timeout: int, **sessionkwargs) -> list[str]:
+async def download_files(session: aiohttp.ClientSession,
+                         urls: list, folder: str) -> list[str]:
     "Download multuple files from given urls into a given folder."
-    coros = [download_file(url, folder, timeout, **sessionkwargs) for url in urls]
+    coros = [download_file(session, url, folder) for url in urls]
     return await asyncio.gather(*coros)
 
-def download_lwjgl_files(urls: list, lwjgl_folder: str) -> None:
+async def download_lwjgl_files(session: aiohttp.ClientSession,
+                         urls: list, lwjgl_folder: str) -> None:
     "Download lwjgl files from urls"
     if not os.path.exists(lwjgl_folder):
         log(f'"{lwjgl_folder}" does not exist, creating it.')
         os.mkdir(lwjgl_folder)
     
-    loop = asyncio.new_event_loop()
-    new_files = loop.run_until_complete(download_files(urls, lwjgl_folder, TIMEOUT))
-    loop.close()
+    new_files = await download_files(session, urls, lwjgl_folder)
     log(f'{len(urls)} files downloaded.')
     
     # Make sure new files are executable
     for path in new_files:
         os.chmod(path, 0o755)
 
-def download_lwjgl3_files(modules: Iterable, lwjgl_folder: str,
+async def download_lwjgl3_files(loop,
+                          modules: Iterable, lwjgl_folder: str,
                           lwjgl_vers: str='latest',
                           branch: str='release') -> None:
     "Download lwjgl 3 files given modules and lwjgl folder."
@@ -247,14 +258,45 @@ def download_lwjgl3_files(modules: Iterable, lwjgl_folder: str,
     for module in modules:
         for file_path in module.file_paths:
             urls.append(get_lwjgl_file_url(file_path, lwjgl_vers, branch))
-    download_lwjgl_files(urls, lwjgl_folder)
+    
+    client_timeout = aiohttp.ClientTimeout(TIMEOUT)
+    
+##    # Debug trace config
+##    trace_config = aiohttp.TraceConfig()
+##
+##    for name in [n for n in dir(trace_config) if n.startswith('on_') and not 'dns' in n.split('_')]:
+##        def make_me_log(name):
+##            log_name = ' '.join(map(lambda x: x.title(), name.split('_')[1:]))
+##            async def log_thing(session, trace_config_ctx, params):
+##                print('#'*32)
+##                print(log_name)
+##                print(f'\n{session = }\n')
+##                print(f'{trace_config_ctx = }\n')
+##                print(f'{params = }')
+##                print('#'*32+'\n')
+##            return log_thing
+##        getattr(trace_config, name).append(make_me_log(name))
+    
+    headers = {
+        'User-Agent': f'python-fixlwjgl/{__version__}',
+        'Accept': 'binary/octet-stream, */*',
+        'Accept-Encoding': 'gzip, deflate',
+    }
+    
+    # Make a session with our event loop
+    async with aiohttp.ClientSession(loop=loop,
+                                     headers=headers,
+##                                     trace_configs=[trace_config],
+                                     timeout=client_timeout
+                                     ) as session:
+        await download_lwjgl_files(session, urls, lwjgl_folder)
 
-def rewrite_classpath_lwjgl3(classpath: list) -> list:
+async def rewrite_classpath_lwjgl3(loop, classpath: list) -> list:
     "Rewrite java classpath for lwjgl 3"
     handled = set()
     
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}3{ARCH}')
-    specific_vers = '3.3.1'# assume 3.3.1, newest version as of 04/21/2022
+    specific_vers = (3, 3, 1)# assume 3.3.1, newest version as of 04/21/2022
     
     new_cls = []
     modules = []
@@ -271,7 +313,10 @@ def rewrite_classpath_lwjgl3(classpath: list) -> list:
         if module in handled:
             continue
         handled.add(module)
-        specific_vers = name[idx+2]
+        
+        vers_tuple = tuple(map(int, name[idx+2].split('.')))
+        if vers_tuple > specific_vers: 
+            specific_vers = vers_tuple
         
         modules.append(Module(module))
     
@@ -286,26 +331,31 @@ def rewrite_classpath_lwjgl3(classpath: list) -> list:
     if download:
         to_get = tuple(download)
         names = ', '.join(map(str, to_get))
+        vers = '.'.join(map(str, specific_vers))
         log(f'The following lwjgl modules were not found in "{new_lwjgl}": {names}')
         log('Downloading required files...')
-        download_lwjgl3_files(to_get, new_lwjgl, specific_vers, 'release')
+        await download_lwjgl3_files(loop, to_get, new_lwjgl, vers, 'release')
     
     return new_cls
 
-def download_lwjgl2_files(lwjgl_folder: str) -> None:
+async def download_lwjgl2_files(loop, lwjgl_folder: str) -> None:
     "Download lwjgl 2 files from github."
     base = f'lwjgl2{ARCH}'
     lookup_file = f'{base}/files.json'
     listing_url = get_address(__author__, 'fix-lwjgl', 'HEAD', f'{lookup_file}')
     
-    listing = asyncio.run(download_coroutine(listing_url))
-    paths = get_paths(json.loads(listing))
-    
-    urls = [get_address(__author__, 'fix-lwjgl', 'HEAD', f'{base}/{p}') for p in paths]
-    
-    download_lwjgl_files(urls, lwjgl_folder)
+    client_timeout = aiohttp.ClientTimeout(TIMEOUT)
+    # Make a session with our event loop
+    async with aiohttp.ClientSession(loop=loop,
+                                     timeout=client_timeout) as session:
+        listing = await download_coroutine(session, listing_url)
+        paths = get_paths(json.loads(listing))
+        
+        urls = [get_address(__author__, 'fix-lwjgl', 'HEAD', f'{base}/{p}') for p in paths]
+        
+        await download_lwjgl_files(session, urls, lwjgl_folder)
 
-def rewrite_classpath_lwjgl2(classpath: list) -> list:
+async def rewrite_classpath_lwjgl2(loop, classpath: list) -> list:
     "Rewrite java classpath for lwjgl 2"
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}2{ARCH}')
     
@@ -317,7 +367,7 @@ def rewrite_classpath_lwjgl2(classpath: list) -> list:
     if download:
         if ARCH in {'arm64', 'arm32'}:
             log('Downloading required files...')
-            download_lwjgl2_files(new_lwjgl)
+            await download_lwjgl2_files(loop, new_lwjgl)
         else:
             log(f'Please create "{new_lwjgl}" or run with "-noop" flag', 1)
             sys.exit(1)
@@ -353,7 +403,7 @@ def rewrite_classpath_lwjgl2(classpath: list) -> list:
 ##    return new_cls
     return classpath
 
-def rewrite_mc_args(mc_args: list) -> list:
+async def rewrite_mc_args(loop, mc_args: list) -> list:
     "Rewrite minecraft arguments"
     global BASE_FOLDER # pylint: disable=global-statement
     # Yes yes, I am aware using global is bad, but it's useful here.
@@ -363,7 +413,7 @@ def rewrite_mc_args(mc_args: list) -> list:
     
     mc_vers = tuple(map(int, mc_args[mc_args.index('--version')+1].split('.')))
     lwjgl_vers = 2 if mc_vers < (1, 13) else 3
-    #TODO: Find exact snapshot it was changed to 3 for.
+    #TODO: Find exact snapshot minecraft updated to lwjgl 3.
     
     lib_path = None
     for arg in mc_args:
@@ -374,20 +424,21 @@ def rewrite_mc_args(mc_args: list) -> list:
     
     if lib_path is None:
         lib_path = os.path.expanduser(f'{BASE_FOLDER}{lwjgl_vers}{ARCH}')
-        log(f'LWJGL library path is not supplied, setting it to "{lib_path}"')
-        arg = f'-Dorg.lwjgl.librarypath={lib_path}'
-        mc_args.insert(cls_path-1, arg)
-        cls_path += 1
+        if lwjgl_vers == 2:
+            log(f'LWJGL library path is not supplied, setting it to "{lib_path}"')
+            arg = f'-Dorg.lwjgl.librarypath={lib_path}'
+            mc_args.insert(cls_path-1, arg)
+            cls_path += 1
     else:
-        log('LWJGL library path is set to "{lib_path}"')
+        log(f'LWJGL library path is set to "{lib_path}"')
         BASE_FOLDER = lib_path
     
     classpath = mc_args[cls_path+1].split(os.pathsep)
     
     if lwjgl_vers == 3:
-        classpath = rewrite_classpath_lwjgl3(classpath)
+        classpath = await rewrite_classpath_lwjgl3(loop, classpath)
     else:
-        classpath = rewrite_classpath_lwjgl2(classpath)
+        classpath = await rewrite_classpath_lwjgl2(loop, classpath)
     
     mc_args[cls_path+1] = os.pathsep.join(classpath)
     
@@ -403,7 +454,7 @@ def launch_mc(mc_args: list) -> None:
 
 def run() -> None:
     "Fix LWJGL classpath and run minecraft"
-    global BASE_FOLDER # pylint: disable=global-statement
+    global BASE_FOLDER, TIMEOUT # pylint: disable=global-statement
     
     folder, filename = os.path.split(__file__)
     conf_file = os.path.join(folder, filename.split('.')[0]+'_config.txt')
@@ -411,12 +462,24 @@ def run() -> None:
     config = ConfigParser()
     config.read(conf_file)
     
-    rewrite_config = True    
+    rewrite_config = False    
     if config.has_section('main'):
         if config.has_option('main', 'lwjgl_base_path'):
             BASE_FOLDER = config.get('main', 'lwjgl_base_path')
             log('Loaded lwjgl base path from config file.')
-            rewrite_config = False
+        else:
+            rewrite_config = True
+        if config.has_option('main', 'download_timeout'):
+            value = config.get('main', 'download_timeout')
+            if value == 'None':
+                TIMEOUT = None
+            else:
+                TIMEOUT = config.getint('main', 'download_timeout')
+            log('Loaded download timeout from config file.')
+        else:
+            rewrite_config = True
+    else:
+        rewrite_config = True
     
     if not os.path.exists(conf_file):
         log('Config file does not exist.')
@@ -431,7 +494,9 @@ def run() -> None:
                 'main':
                 {
                     'lwjgl_base_path':
-                    os.path.expanduser(BASE_FOLDER)
+                    os.path.expanduser(BASE_FOLDER),
+                    'download_timeout':
+                    repr(TIMEOUT)
                 }
             }
         )
@@ -446,7 +511,11 @@ def run() -> None:
             mc_args = args[1:]
             log('Not preforming any classpath rewrites, -noop flag given.')
         else:
-            mc_args = rewrite_mc_args(args)
+            loop = asyncio.new_event_loop()
+            try:
+                mc_args = loop.run_until_complete(rewrite_mc_args(loop, args))
+            finally:
+                loop.close()
         launch_mc(mc_args)
     else:
         log('No java arguments to rewrite lwjgl classpaths for!')
