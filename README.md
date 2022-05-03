@@ -27,7 +27,7 @@ Download `fix_lwjgl.py` onto your computer, ensure Python 3 is installed, and us
 install everything in `requirements.txt`
 
 ```bash
-wget https://raw.githubusercontent.com/CoolCat467/fix-lwjgl/HEAD/fix_lwjgl.py && pip install aiohttp async-timeout && chmod +x fix_lwjgl.py
+wget https://raw.githubusercontent.com/CoolCat467/fix-lwjgl/HEAD/fix_lwjgl.py && pip install aiohttp && chmod +x fix_lwjgl.py
 ```
 
 On default, all LWJGL files are expected to be in `~/lwjgl{lwjgl_version}{system_arch}`, so
