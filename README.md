@@ -1,15 +1,15 @@
 # fix-lwjgl
-Fix LWJGL (Light Weight Java Game Library) java classpath data for ARM devices
+Fix LWJGL (Light Weight Java Game Library) version used in Minecraft for ARM devices
 
 ## Description
 This script is a wrapper for launching Minecraft on devices that aren't properly
-supported by Mojang, such as computers running Raspberry Pi OS. On these devices,
-the wrong version of LWJGL is downloaded, preventing minecraft from working
-properly. This program takes the arguments that would have been used to run
-Minecraft and rewrites a few details about LWJGL, pointing minecraft to use a
-user-specified folder as the LWJGL library library path for the shared object
-files and in the case of LWJGL 3, completely re-writing the java class path
-information to use the correct files.
+supported by Mojang, such as computer with ARM processors like the Raspberry Pi 3 and 4.
+On these devices, the wrong version of LWJGL is downloaded, preventing minecraft
+from working properly. This program takes the arguments that would have been
+used to run Minecraft and rewrites a few details about LWJGL, pointing minecraft
+to use a user-specified folder as the LWJGL library library path for the
+shared object files and in the case of LWJGL 3, changing the
+java class path information to use the correct files.
 
 ## Testing
 This program has been tested successfully with [ATLauncher](https://github.com/ATLauncher/ATLauncher)
@@ -17,7 +17,7 @@ on a Raspberry Pi 4 running 64 bit Raspberry Pi OS bullseye. It should work
 for 32 bit Raspberry Pi OS bullseye, but I have not tested that yet.
 
 This *might* work on the new Apple M1 chips, as they are arm64 processors,
-but this is unlikely. I have not tested this either.
+but this is unlikely without changes. I have not tested this either.
 
 If possible, if this script works on anything not listed as tested, please
 tell me using discussions.
