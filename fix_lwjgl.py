@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Program that fixes LWJGL java classpath data for minecraft
+# Program that fixes LWJGL java class path data for minecraft
 
 # MIT License
 # 
@@ -16,7 +16,7 @@
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
 # 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# THE SOFTWARE IS PROVIDED "AS IS", WITsHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -24,7 +24,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"Fix lwjgl classpaths for minecraft"
+"Fix lwjgl class paths for minecraft"
 
 # Helpful pre-launch command for Raspberry Pi OS:
 #export MESA_GL_VERSION_OVERRIDE=4.2COMPAT
@@ -37,7 +37,8 @@
 
 __title__ = 'Fix-LWJGL'
 __author__ = 'CoolCat467'
-__version__ = '1.1.0'
+__version__ = '1.2.0'
+
 
 import os
 import sys
@@ -46,11 +47,12 @@ import subprocess
 from configparser import ConfigParser
 import asyncio
 import json
-from typing import Final, Iterable
+from typing import Final, Iterable, Iterator
 
 import aiohttp
 
 BASE_FOLDER = os.path.join('~', 'lwjgl')
+ALLOWED_TO_DOWNLOAD = True
 TIMEOUT = None
 
 OS = platform.system().lower()
@@ -85,7 +87,7 @@ ARCH_IGNORE: Final = {
     'x32'
 }
 
-# SO files in lwjgl build repo that don't start with
+# SO files in lwjgl build repository that don't start with
 # "lwjgl_"
 NOPRE_SO: Final = (
     'assimp', 'bgfx', 'glfw',
@@ -104,7 +106,7 @@ ARCH_PATH_RENAME: Final = {
 def get_paths(jdict: dict) -> list:
     "Read dictionary and figure out paths of files we want to update."
     def read_dict(cdict: dict) -> list:
-        "Read a dictonary and return paths."
+        "Read a dictionary and return paths."
         paths = []
         for path in cdict:
             nxt = cdict[path]
@@ -124,12 +126,16 @@ def get_paths(jdict: dict) -> list:
 
 # Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
 def get_address(user: str, repo: str, branch: str, path: str) -> str:
-    "Get raw github user content url of a specific file."
+    "Get raw GitHub user content URL of a specific file."
     return f'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}'
 
 async def download_coroutine(session: aiohttp.ClientSession, url: str) -> bytes:
-    "Return content bytes found at url."
-    # Go to the url and get response
+    "Return content bytes found at URL."
+    if not ALLOWED_TO_DOWNLOAD:
+        log(f'Not allowed to download "{url}" because of configuration file', 1)
+        sys.exit(1)
+    
+    # Go to the URL and get response
     try:
         async with session.get(url) as response:
             # Wait for our response
@@ -157,10 +163,10 @@ class Module:
     def __init__(self, name: str) -> None:
         self.name = name
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Module({self.name!r})'
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
     
     @property
@@ -186,7 +192,7 @@ class Module:
         return f'{pre}{name}.{end}'
     
     @property
-    def filenames(self) -> tuple:
+    def filenames(self) -> tuple[str, str]:
         "Tuple of module jar, module natives jar, and so file."
         natives_vers = OS if ARCH in ARCH_IGNORE else f'{OS}-{ARCH}'
         return (f'{self.name}.jar',
@@ -195,7 +201,7 @@ class Module:
                 )
     
     @property
-    def file_paths(self) -> tuple:
+    def file_paths(self) -> tuple[str, str]:
         "Tuple of lwjgl repository paths to module jar, module natives jar, and so file."
         natives_vers = OS if ARCH in ARCH_IGNORE else f'{OS}-{ARCH}'
 ##        arch_path = f'{OS}/{ARCH}'
@@ -205,13 +211,16 @@ class Module:
 ##                f'{arch_path}/{self.system_library}')
                 )
     
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         "Return iterator of self.filenames"
         return iter(self.filenames)
 
 def test_modules() -> None:
     "Test modules system"
-    names = ('lwjgl', 'lwjgl-jemalloc', 'lwjgl-openal', 'lwjgl-opengl', 'lwjgl-glfw', 'lwjgl-stb', 'lwjgl-tinyfd')
+    names = ('lwjgl', 'lwjgl-jemalloc',
+             'lwjgl-openal', 'lwjgl-opengl',
+             'lwjgl-glfw', 'lwjgl-stb',
+             'lwjgl-tinyfd')
     modules = list(map(Module, names))
     for module in modules:
         print('\n'.join(module.file_paths))
@@ -231,13 +240,13 @@ async def download_file(session: aiohttp.ClientSession, url: str, folder: str) -
 
 async def download_files(session: aiohttp.ClientSession,
                          urls: list, folder: str) -> list[str]:
-    "Download multuple files from given urls into a given folder."
+    "Download multiple files from given URLs into a given folder."
     coros = [download_file(session, url, folder) for url in urls]
     return await asyncio.gather(*coros)
 
 async def download_lwjgl_files(session: aiohttp.ClientSession,
                          urls: list, lwjgl_folder: str) -> None:
-    "Download lwjgl files from urls"
+    "Download lwjgl files from URLs"
     if not os.path.exists(lwjgl_folder):
         log(f'"{lwjgl_folder}" does not exist, creating it.')
         os.mkdir(lwjgl_folder)
@@ -249,10 +258,10 @@ async def download_lwjgl_files(session: aiohttp.ClientSession,
     for path in new_files:
         os.chmod(path, 0o755)
 
-async def download_lwjgl3_files(loop,
-                          modules: Iterable, lwjgl_folder: str,
-                          lwjgl_vers: str='latest',
-                          branch: str='release') -> None:
+async def download_lwjgl3_files(loop: asyncio.AbstractEventLoop,
+                                modules: Iterable, lwjgl_folder: str,
+                                lwjgl_vers: str='latest',
+                                branch: str='release') -> None:
     "Download lwjgl 3 files given modules and lwjgl folder."
     urls = []
     for module in modules:
@@ -291,16 +300,17 @@ async def download_lwjgl3_files(loop,
                                      ) as session:
         await download_lwjgl_files(session, urls, lwjgl_folder)
 
-async def rewrite_classpath_lwjgl3(loop, classpath: list) -> list:
-    "Rewrite java classpath for lwjgl 3"
+async def rewrite_class_path_lwjgl3(loop: asyncio.AbstractEventLoop,
+                                   class_path: list[str]) -> list[str]:
+    "Rewrite java class-path for lwjgl 3"
     handled = set()
     
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}3{ARCH}')
-    specific_vers = (3, 3, 1)# assume 3.3.1, newest version as of 04/21/2022
+    specific_vers: tuple[int, ...] = (3, 3, 1)# assume 3.3.1, newest version as of 04/21/2022
     
     new_cls = []
     modules = []
-    for elem in classpath:
+    for elem in class_path:
         if not 'lwjgl' in elem:
             new_cls.append(elem)
             continue
@@ -309,16 +319,17 @@ async def rewrite_classpath_lwjgl3(loop, classpath: list) -> list:
         
         idx = name.index('lwjgl')
         
-        module = name[idx+1]
-        if module in handled:
+        module_name = name[idx+1]
+        if module_name in handled:
             continue
-        handled.add(module)
+        handled.add(module_name)
         
         vers_tuple = tuple(map(int, name[idx+2].split('.')))
-        if vers_tuple > specific_vers: 
+        assert len(vers_tuple) == 3, 'Minecraft versions have exactly 2 decimal points!'
+        if vers_tuple > specific_vers:
             specific_vers = vers_tuple
         
-        modules.append(Module(module))
+        modules.append(Module(module_name))
     
     download = set()
     for module in modules:
@@ -333,13 +344,12 @@ async def rewrite_classpath_lwjgl3(loop, classpath: list) -> list:
         names = ', '.join(map(str, to_get))
         vers = '.'.join(map(str, specific_vers))
         log(f'The following lwjgl modules were not found in "{new_lwjgl}": {names}')
-        log('Downloading required files...')
         await download_lwjgl3_files(loop, to_get, new_lwjgl, vers, 'release')
     
     return new_cls
 
-async def download_lwjgl2_files(loop, lwjgl_folder: str) -> None:
-    "Download lwjgl 2 files from github."
+async def download_lwjgl2_files(loop: asyncio.AbstractEventLoop, lwjgl_folder: str) -> None:
+    "Download lwjgl 2 files from GitHub."
     base = f'lwjgl2{ARCH}'
     lookup_file = f'{base}/files.json'
     listing_url = get_address(__author__, 'fix-lwjgl', 'HEAD', f'{lookup_file}')
@@ -355,8 +365,8 @@ async def download_lwjgl2_files(loop, lwjgl_folder: str) -> None:
         
         await download_lwjgl_files(session, urls, lwjgl_folder)
 
-async def rewrite_classpath_lwjgl2(loop, classpath: list) -> list:
-    "Rewrite java classpath for lwjgl 2"
+async def rewrite_class_path_lwjgl2(loop: asyncio.AbstractEventLoop, class_path: list) -> list:
+    "Rewrite java class-path for lwjgl 2"
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}2{ARCH}')
     
     download = False
@@ -378,7 +388,7 @@ async def rewrite_classpath_lwjgl2(loop, classpath: list) -> list:
     
 ##    new_cls = []
 ##    find = set()
-##    for elem in classpath:
+##    for elem in class_path:
 ##        if not 'lwjgl' in elem:
 ##            new_cls.append(elem)
 ##            continue
@@ -401,9 +411,9 @@ async def rewrite_classpath_lwjgl2(loop, classpath: list) -> list:
 ##                log(f)
 ####    new_cls += [os.path.join(new_lwjgl, f) for f in os.listdir(new_lwjgl) if f.endswith('.jar')]
 ##    return new_cls
-    return classpath
+    return class_path
 
-async def rewrite_mc_args(loop, mc_args: list) -> list:
+async def rewrite_mc_args(loop: asyncio.AbstractEventLoop, mc_args: list) -> list:
     "Rewrite minecraft arguments"
     global BASE_FOLDER # pylint: disable=global-statement
     # Yes yes, I am aware using global is bad, but it's useful here.
@@ -433,28 +443,29 @@ async def rewrite_mc_args(loop, mc_args: list) -> list:
         log(f'LWJGL library path is set to "{lib_path}"')
         BASE_FOLDER = lib_path
     
-    classpath = mc_args[cls_path+1].split(os.pathsep)
+    class_path = mc_args[cls_path+1].split(os.pathsep)
     
     if lwjgl_vers == 3:
-        classpath = await rewrite_classpath_lwjgl3(loop, classpath)
+        class_path = await rewrite_class_path_lwjgl3(loop, class_path)
     else:
-        classpath = await rewrite_classpath_lwjgl2(loop, classpath)
+        class_path = await rewrite_class_path_lwjgl2(loop, class_path)
     
-    mc_args[cls_path+1] = os.pathsep.join(classpath)
+    mc_args[cls_path+1] = os.pathsep.join(class_path)
     
     mc_ver_text = '.'.join(map(str, mc_vers))
-    log(f'Rewrote lwjgl classpaths for {mc_ver_text} (LWJGL {lwjgl_vers})')
+    log(f'Rewrote lwjgl class paths for {mc_ver_text} (LWJGL {lwjgl_vers})')
     
     return mc_args
 
-def launch_mc(mc_args: list) -> None:
+def launch_mc(mc_args: list[str]) -> int:
     "Launch minecraft with given arguments"
 ##    log(f'Launch Arguments: {" ".join(mc_args)}')
-    subprocess.run(mc_args, check=False)
+    response = subprocess.run(mc_args, check=False)
+    return response.returncode
 
-def run() -> None:
-    "Fix LWJGL classpath and run minecraft"
-    global BASE_FOLDER, TIMEOUT # pylint: disable=global-statement
+def run(args: list[str]) -> int:
+    "Fix LWJGL class-path and run minecraft"
+    global BASE_FOLDER, ALLOWED_TO_DOWNLOAD, TIMEOUT # pylint: disable=global-statement
     
     folder, filename = os.path.split(__file__)
     conf_file = os.path.join(folder, filename.split('.')[0]+'_config.txt')
@@ -467,6 +478,12 @@ def run() -> None:
         if config.has_option('main', 'lwjgl_base_path'):
             BASE_FOLDER = config.get('main', 'lwjgl_base_path')
             log('Loaded lwjgl base path from config file.')
+        else:
+            rewrite_config = True
+        if config.has_option('main', 'can_download'):
+            ALLOWED_TO_DOWNLOAD = config.getboolean('main',
+                                                    'can_download')
+            log('Loaded if allowed to download from config file.')
         else:
             rewrite_config = True
         if config.has_option('main', 'download_timeout'):
@@ -495,8 +512,9 @@ def run() -> None:
                 {
                     'lwjgl_base_path':
                     os.path.expanduser(BASE_FOLDER),
+                    'can_download': ALLOWED_TO_DOWNLOAD,
                     'download_timeout':
-                    repr(TIMEOUT)
+                    str(TIMEOUT)
                 }
             }
         )
@@ -504,22 +522,20 @@ def run() -> None:
         with open(conf_file, 'w', encoding='utf-8') as file_point:
             config.write(file_point)
     
-    args = sys.argv[1:]
-    
     if args:
         if len(args) > 1 and args[0].lower() == '-noop':
             mc_args = args[1:]
-            log('Not preforming any classpath rewrites, -noop flag given.')
+            log('Not preforming any class path rewrites, -noop flag given.')
         else:
             loop = asyncio.new_event_loop()
             try:
                 mc_args = loop.run_until_complete(rewrite_mc_args(loop, args))
             finally:
                 loop.close()
-        launch_mc(mc_args)
-    else:
-        log('No java arguments to rewrite lwjgl classpaths for!')
+        return launch_mc(mc_args)
+    log('No java arguments to rewrite lwjgl class paths for!')
+    return 1
 
 if __name__ == '__main__':
     log(f'{__title__} v{__version__} Programmed by {__author__}.')
-    run()
+    sys.exit(run(sys.argv[1:]))
