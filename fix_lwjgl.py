@@ -3,19 +3,19 @@
 # Program that fixes LWJGL java class path data for minecraft
 
 # MIT License
-# 
+#
 # Copyright (c) 2022 CoolCat467
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,20 +40,21 @@ __author__ = 'CoolCat467'
 __version__ = '1.2.0'
 
 
-import os
-import sys
-import platform
-import subprocess
 from configparser import ConfigParser
+from typing import Any, Final, Iterable, Iterator
 import asyncio
 import json
-from typing import Final, Iterable, Iterator
+import os
+import platform
+import subprocess
+import sys
 
 import aiohttp
 
+
 BASE_FOLDER = os.path.join('~', 'lwjgl')
 ALLOWED_TO_DOWNLOAD = True
-TIMEOUT = None
+TIMEOUT: int | None = None
 
 OS = platform.system().lower()
 
@@ -102,10 +103,11 @@ ARCH_PATH_RENAME: Final = {
     'macos/arm64' : 'macosx/arm64',
 }
 
+
 # Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
-def get_paths(jdict: dict) -> list:
+def get_paths(jdict: dict[str, Any]) -> list[str]:
     "Read dictionary and figure out paths of files we want to update."
-    def read_dict(cdict: dict) -> list:
+    def read_dict(cdict: dict[str, Any]) -> list[str]:
         "Read a dictionary and return paths."
         paths = []
         for path in cdict:
@@ -124,17 +126,20 @@ def get_paths(jdict: dict) -> list:
         return paths
     return read_dict(jdict)
 
+
 # Taken from my update module: https://github.com/CoolCat467/StatusBot/blob/main/bot/update.py
 def get_address(user: str, repo: str, branch: str, path: str) -> str:
     "Get raw GitHub user content URL of a specific file."
     return f'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}'
 
-async def download_coroutine(session: aiohttp.ClientSession, url: str) -> bytes:
+
+async def download_coroutine(session: aiohttp.ClientSession,
+                             url: str) -> bytes:
     "Return content bytes found at URL."
     if not ALLOWED_TO_DOWNLOAD:
         log(f'Not allowed to download "{url}" because of configuration file', 1)
         sys.exit(1)
-    
+
     # Go to the URL and get response
     try:
         async with session.get(url) as response:
@@ -146,6 +151,7 @@ async def download_coroutine(session: aiohttp.ClientSession, url: str) -> bytes:
         raise
     return data
 
+
 def log(msg: str, level: int=0) -> None:
     "Log message."
     lvl = ('INFO', 'ERROR')[level]
@@ -153,22 +159,24 @@ def log(msg: str, level: int=0) -> None:
         msg += '\a'
     print(f'[{__title__}/{lvl}]: {msg}')
 
+
 def get_lwjgl_file_url(filepath: str, lwjgl_vers: str='latest', branch: str='release') -> str:
     "Return the URL of lwjgl file required."
     return f'https://build.lwjgl.org/{branch}/{lwjgl_vers}/{filepath}'
 
+
 class Module:
     "LWJGL Module class. Has filenames and file download paths."
-    __slots__: tuple = ('name',)
+    __slots__ = ('name',)
     def __init__(self, name: str) -> None:
         self.name = name
-    
+
     def __repr__(self) -> str:
         return f'Module({self.name!r})'
-    
+
     def __str__(self) -> str:
         return self.name
-    
+
     @property
     def system_library(self) -> str:
         "System library for this module"
@@ -185,12 +193,12 @@ class Module:
         if base.lower() in NOPRE_SO:
             if OS == 'windows' and base == 'openal':# Strange oddity
                 base = 'OpenAL'
-            elif os == 'macos' and base == 'moltenvk':
+            elif OS == 'macos' and base == 'moltenvk':
                 base = 'MoltenVK'
             return f'{pre}{base}.{end}'
         name = self.name.replace('-', '_')
         return f'{pre}{name}.{end}'
-    
+
     @property
     def filenames(self) -> tuple[str, str]:
         "Tuple of module jar, module natives jar, and so file."
@@ -199,7 +207,7 @@ class Module:
                 f'{self.name}-natives-{natives_vers}.jar',
 ##                self.system_library)
                 )
-    
+
     @property
     def file_paths(self) -> tuple[str, str]:
         "Tuple of lwjgl repository paths to module jar, module natives jar, and so file."
@@ -210,10 +218,11 @@ class Module:
                 f'bin/{self.name}/{self.name}-natives-{natives_vers}.jar',
 ##                f'{arch_path}/{self.system_library}')
                 )
-    
-    def __iter__(self) -> Iterator:
+
+    def __iter__(self) -> Iterator[str]:
         "Return iterator of self.filenames"
         return iter(self.filenames)
+
 
 def test_modules() -> None:
     "Test modules system"
@@ -224,6 +233,7 @@ def test_modules() -> None:
     modules = list(map(Module, names))
     for module in modules:
         print('\n'.join(module.file_paths))
+
 
 async def download_file(session: aiohttp.ClientSession, url: str, folder: str) -> str:
     "Download files into given folder. Return file path saved to."
@@ -238,28 +248,32 @@ async def download_file(session: aiohttp.ClientSession, url: str, folder: str) -
         sfile.write(data)
     return filepath
 
+
 async def download_files(session: aiohttp.ClientSession,
-                         urls: list, folder: str) -> list[str]:
+                         urls: list[str], folder: str) -> list[str]:
     "Download multiple files from given URLs into a given folder."
     coros = [download_file(session, url, folder) for url in urls]
     return await asyncio.gather(*coros)
 
+
 async def download_lwjgl_files(session: aiohttp.ClientSession,
-                         urls: list, lwjgl_folder: str) -> None:
+                         urls: list[str], lwjgl_folder: str) -> None:
     "Download lwjgl files from URLs"
     if not os.path.exists(lwjgl_folder):
         log(f'"{lwjgl_folder}" does not exist, creating it.')
         os.mkdir(lwjgl_folder)
-    
+
     new_files = await download_files(session, urls, lwjgl_folder)
     log(f'{len(urls)} files downloaded.')
-    
+
     # Make sure new files are executable
     for path in new_files:
         os.chmod(path, 0o755)
 
+
 async def download_lwjgl3_files(loop: asyncio.AbstractEventLoop,
-                                modules: Iterable, lwjgl_folder: str,
+                                modules: Iterable[Module],
+                                lwjgl_folder: str,
                                 lwjgl_vers: str='latest',
                                 branch: str='release') -> None:
     "Download lwjgl 3 files given modules and lwjgl folder."
@@ -267,9 +281,9 @@ async def download_lwjgl3_files(loop: asyncio.AbstractEventLoop,
     for module in modules:
         for file_path in module.file_paths:
             urls.append(get_lwjgl_file_url(file_path, lwjgl_vers, branch))
-    
+
     client_timeout = aiohttp.ClientTimeout(TIMEOUT)
-    
+
 ##    # Debug trace config
 ##    trace_config = aiohttp.TraceConfig()
 ##
@@ -285,13 +299,13 @@ async def download_lwjgl3_files(loop: asyncio.AbstractEventLoop,
 ##                print('#'*32+'\n')
 ##            return log_thing
 ##        getattr(trace_config, name).append(make_me_log(name))
-    
+
     headers = {
         'User-Agent': f'python-fixlwjgl/{__version__}',
         'Accept': 'binary/octet-stream, */*',
         'Accept-Encoding': 'gzip, deflate',
     }
-    
+
     # Make a session with our event loop
     async with aiohttp.ClientSession(loop=loop,
                                      headers=headers,
@@ -300,37 +314,38 @@ async def download_lwjgl3_files(loop: asyncio.AbstractEventLoop,
                                      ) as session:
         await download_lwjgl_files(session, urls, lwjgl_folder)
 
+
 async def rewrite_class_path_lwjgl3(loop: asyncio.AbstractEventLoop,
                                    class_path: list[str]) -> list[str]:
     "Rewrite java class-path for lwjgl 3"
     handled = set()
-    
+
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}3{ARCH}')
     specific_vers: tuple[int, ...] = (3, 3, 1)# assume 3.3.1, newest version as of 04/21/2022
-    
+
     new_cls = []
     modules = []
     for elem in class_path:
         if not 'lwjgl' in elem:
             new_cls.append(elem)
             continue
-        
+
         name = elem.split(os.sep)
-        
+
         idx = name.index('lwjgl')
-        
+
         module_name = name[idx+1]
         if module_name in handled:
             continue
         handled.add(module_name)
-        
+
         vers_tuple = tuple(map(int, name[idx+2].split('.')))
         assert len(vers_tuple) == 3, 'Minecraft versions have exactly 2 decimal points!'
         if vers_tuple > specific_vers:
             specific_vers = vers_tuple
-        
+
         modules.append(Module(module_name))
-    
+
     download = set()
     for module in modules:
         for filename in module:
@@ -338,42 +353,45 @@ async def rewrite_class_path_lwjgl3(loop: asyncio.AbstractEventLoop,
             if not os.path.exists(file):
                 download.add(module)
             new_cls.append(file)
-    
+
     if download:
         to_get = tuple(download)
         names = ', '.join(map(str, to_get))
         vers = '.'.join(map(str, specific_vers))
         log(f'The following lwjgl modules were not found in "{new_lwjgl}": {names}')
         await download_lwjgl3_files(loop, to_get, new_lwjgl, vers, 'release')
-    
+
     return new_cls
+
 
 async def download_lwjgl2_files(loop: asyncio.AbstractEventLoop, lwjgl_folder: str) -> None:
     "Download lwjgl 2 files from GitHub."
     base = f'lwjgl2{ARCH}'
     lookup_file = f'{base}/files.json'
     listing_url = get_address(__author__, 'fix-lwjgl', 'HEAD', f'{lookup_file}')
-    
+
     client_timeout = aiohttp.ClientTimeout(TIMEOUT)
     # Make a session with our event loop
     async with aiohttp.ClientSession(loop=loop,
                                      timeout=client_timeout) as session:
         listing = await download_coroutine(session, listing_url)
         paths = get_paths(json.loads(listing))
-        
+
         urls = [get_address(__author__, 'fix-lwjgl', 'HEAD', f'{base}/{p}') for p in paths]
-        
+
         await download_lwjgl_files(session, urls, lwjgl_folder)
 
-async def rewrite_class_path_lwjgl2(loop: asyncio.AbstractEventLoop, class_path: list) -> list:
+
+async def rewrite_class_path_lwjgl2(loop: asyncio.AbstractEventLoop,
+                                    class_path: list[str]) -> list[str]:
     "Rewrite java class-path for lwjgl 2"
     new_lwjgl = os.path.expanduser(f'{BASE_FOLDER}2{ARCH}')
-    
+
     download = False
     if not os.path.exists(new_lwjgl):
         log(f'"{new_lwjgl}" does not exist!')
         download = True
-    
+
     if download:
         if ARCH in {'arm64', 'arm32'}:
             log('Downloading required files...')
@@ -381,11 +399,11 @@ async def rewrite_class_path_lwjgl2(loop: asyncio.AbstractEventLoop, class_path:
         else:
             log(f'Please create "{new_lwjgl}" or run with "-noop" flag', 1)
             sys.exit(1)
-    
+
     # Keeping below for the time being, but
     # I think that simply adding LWJGL 2 library
     # path is good enough.
-    
+
 ##    new_cls = []
 ##    find = set()
 ##    for elem in class_path:
@@ -413,25 +431,27 @@ async def rewrite_class_path_lwjgl2(loop: asyncio.AbstractEventLoop, class_path:
 ##    return new_cls
     return class_path
 
-async def rewrite_mc_args(loop: asyncio.AbstractEventLoop, mc_args: list) -> list:
+
+async def rewrite_mc_args(loop: asyncio.AbstractEventLoop,
+                          mc_args: list[str]) -> list[str]:
     "Rewrite minecraft arguments"
     global BASE_FOLDER # pylint: disable=global-statement
     # Yes yes, I am aware using global is bad, but it's useful here.
-    
+
     if '-cp' not in mc_args:
         return mc_args
-    
+
     mc_vers = tuple(map(int, mc_args[mc_args.index('--version')+1].split('.')))
     lwjgl_vers = 2 if mc_vers < (1, 13) else 3
     #TODO: Find exact snapshot minecraft updated to lwjgl 3.
-    
+
     lib_path = None
     for arg in mc_args:
         if arg.startswith('-Dorg.lwjgl.librarypath='):
             lib_path = arg.split('=', 1)[1]
-    
+
     cls_path = mc_args.index('-cp')
-    
+
     if lib_path is None:
         lib_path = os.path.expanduser(f'{BASE_FOLDER}{lwjgl_vers}{ARCH}')
         if lwjgl_vers == 2:
@@ -442,20 +462,21 @@ async def rewrite_mc_args(loop: asyncio.AbstractEventLoop, mc_args: list) -> lis
     else:
         log(f'LWJGL library path is set to "{lib_path}"')
         BASE_FOLDER = lib_path
-    
+
     class_path = mc_args[cls_path+1].split(os.pathsep)
-    
+
     if lwjgl_vers == 3:
         class_path = await rewrite_class_path_lwjgl3(loop, class_path)
     else:
         class_path = await rewrite_class_path_lwjgl2(loop, class_path)
-    
+
     mc_args[cls_path+1] = os.pathsep.join(class_path)
-    
+
     mc_ver_text = '.'.join(map(str, mc_vers))
     log(f'Rewrote lwjgl class paths for {mc_ver_text} (LWJGL {lwjgl_vers})')
-    
+
     return mc_args
+
 
 def launch_mc(mc_args: list[str]) -> int:
     "Launch minecraft with given arguments"
@@ -463,17 +484,18 @@ def launch_mc(mc_args: list[str]) -> int:
     response = subprocess.run(mc_args, check=False)
     return response.returncode
 
+
 def run(args: list[str]) -> int:
     "Fix LWJGL class-path and run minecraft"
     global BASE_FOLDER, ALLOWED_TO_DOWNLOAD, TIMEOUT # pylint: disable=global-statement
-    
+
     folder, filename = os.path.split(__file__)
     conf_file = os.path.join(folder, filename.split('.')[0]+'_config.txt')
-    
+
     config = ConfigParser()
     config.read(conf_file)
-    
-    rewrite_config = False    
+
+    rewrite_config = False
     if config.has_section('main'):
         if config.has_option('main', 'lwjgl_base_path'):
             BASE_FOLDER = config.get('main', 'lwjgl_base_path')
@@ -497,12 +519,12 @@ def run(args: list[str]) -> int:
             rewrite_config = True
     else:
         rewrite_config = True
-    
+
     if not os.path.exists(conf_file):
         log('Config file does not exist.')
     elif rewrite_config:
         log('Config file is missing information.')
-    
+
     if rewrite_config:
         log(f'Writing config file to "{conf_file}"')
         config.clear()
@@ -518,10 +540,10 @@ def run(args: list[str]) -> int:
                 }
             }
         )
-        
+
         with open(conf_file, 'w', encoding='utf-8') as file_point:
             config.write(file_point)
-    
+
     if args:
         if len(args) > 1 and args[0].lower() == '-noop':
             mc_args = args[1:]
@@ -535,6 +557,7 @@ def run(args: list[str]) -> int:
         return launch_mc(mc_args)
     log('No java arguments to rewrite lwjgl class paths for!')
     return 1
+
 
 if __name__ == '__main__':
     log(f'{__title__} v{__version__} Programmed by {__author__}.')
