@@ -37,7 +37,8 @@
 
 __title__ = 'Fix-LWJGL'
 __author__ = 'CoolCat467'
-__version__ = '1.2.0'
+__version__ = '1.2.1'
+__license__ = 'MIT'
 
 
 from configparser import ConfigParser
@@ -146,7 +147,7 @@ async def download_coroutine(session: aiohttp.ClientSession,
             # Wait for our response
             data = await response.content.read()
             response.close()
-    except asyncio.exceptions.TimeoutError:
+    except asyncio.TimeoutError:
         log(f'Timeout Error while downloading from "{url}"', 1)
         raise
     return data
