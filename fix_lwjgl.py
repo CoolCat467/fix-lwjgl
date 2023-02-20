@@ -444,7 +444,8 @@ async def rewrite_mc_args(loop: asyncio.AbstractEventLoop,
 
     mc_vers = tuple(map(int, mc_args[mc_args.index('--version')+1].split('.')))
     lwjgl_vers = 2 if mc_vers < (1, 13) else 3
-    #TODO: Find exact snapshot minecraft updated to lwjgl 3.
+    # The snapshot minecraft updated to lwjgl 3 is apparently 17w43b
+    # TODO: Handle snapshots properly
 
     lib_path = None
     for arg in mc_args:
