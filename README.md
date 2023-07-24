@@ -44,9 +44,9 @@ available to browse at https://www.lwjgl.org/browse
 ## Configuration
 All configuration files should be located in `~/.config/fix_lwjgl/`. The current options
 include:
-    `lwjgl_base_path` - Changing where the lwjgl folders are expected to live at (defaults to `$HOME/.local/share/fix_lwjgl`)
-    `can_download` - If the wrapper is allowed to download files from the internet (defaults to True)
-    `download_timeout` - Timeout in seconds for downloading files from the internet
+- `lwjgl_base_path` - Changing where the lwjgl folders are expected to live at (defaults to `$HOME/.local/share/fix_lwjgl`)
+- `can_download` - If the wrapper is allowed to download files from the internet (defaults to True)
+- `download_timeout` - Timeout in seconds for downloading files from the internet
 
 ## Usage
 Go to your Minecraft launcher, and somewhere in settings is likely the ability to
