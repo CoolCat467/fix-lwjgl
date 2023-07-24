@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Generate File Listing
+# Generate File Listing - Put into a folder, run, now you have a file listing
 
 "Generate File Listing"
 
@@ -8,10 +8,10 @@
 
 __title__ = "Generate File List"
 __author__ = "CoolCat467"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __ver_major__ = 0
 __ver_minor__ = 1
-__ver_patch__ = 0
+__ver_patch__ = 1
 
 import json
 import os
@@ -63,9 +63,10 @@ def run() -> None:
     # print(dirs)
     print(json.dumps(dirs, indent=2))
 
-    # with open(os.path.join(root, 'files.json'), 'w', encoding='utf-8') as fp:
-    #     json.dump(dirs, fp, indent=2)
-    # print('\nData written.')
+    with open(os.path.join(root, "files.json"), "w", encoding="utf-8") as fp:
+        json.dump(dirs, fp, indent=2)
+        fp.write("\n")
+    print("\nData written.")
 
 
 if __name__ == "__main__":
