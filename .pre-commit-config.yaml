@@ -18,7 +18,7 @@ repos:
         types: [file]
         types_or: [python, pyi]
   - repo: https://github.com/psf/black
-    rev: 23.7.0 # must match requirements_dev.txt
+    rev: 23.9.1 # must match requirements_dev.txt
     hooks:
       - id: black
         language_version: python3.11
