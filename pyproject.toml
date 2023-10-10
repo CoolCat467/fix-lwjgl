@@ -19,7 +19,7 @@ classifiers = [
 ]
 keywords = ["minecraft", "raspberry-pi", "lwjgl", "lwjgl2", "lwjgl3", "wrapper-script"]
 dependencies = [
-    "aiohttp==3.8.5"
+    "aiohttp==3.8.6"
 ]
 
 [project.urls]
