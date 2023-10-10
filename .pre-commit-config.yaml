@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0 # must match requirements_dev.txt
+    rev: v4.5.0 # must match requirements_dev.txt
     hooks:
       - id: trailing-whitespace
       - id: requirements-txt-fixer
