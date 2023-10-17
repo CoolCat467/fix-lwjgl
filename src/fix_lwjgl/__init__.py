@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Program that fixes LWJGL java class path data for minecraft
 
 # MIT License
@@ -270,8 +269,9 @@ async def download_file(
         b'<?xml version="1.0" encoding="UTF-8"?>\n<Error>' in data
         or b"404: Not Found" in data
     ):
-        raise IOError(f'"{filename}" does not exist acording to "{url}"!')
-    with open(filepath, "wb") as sfile:
+        raise OSError(f'"{filename}" does not exist according to "{url}"!')
+    # Could have aiofiles dependency and fix this, but I would rather not.
+    with open(filepath, "wb") as sfile:  # noqa: ASYNC101  # sync `open`
         sfile.write(data)
     return filepath
 
@@ -297,7 +297,7 @@ async def download_lwjgl_files(
 
     # Make sure new files are executable
     for path in new_files:
-        os.chmod(path, 0o755)
+        os.chmod(path, 0o755)  # noqa: S103  # We need executable privileges
 
 
 async def download_lwjgl3_files(
@@ -544,7 +544,11 @@ def launch_mc(mc_args: list[str]) -> int:
     "Launch minecraft with given arguments"
     log("Launching minecraft from arguments...")
     # log(f'Launch Arguments: {" ".join(mc_args)}')
-    response = subprocess.run(mc_args, check=False)
+    # Can't easily check for untrusted input, and launchers have the same
+    # issue, so not that big of a security risk. No permission changes,
+    # and if someone is running this tool as root that's their problem, not
+    # ours. We have absolutely no warranty for a reason.
+    response = subprocess.run(mc_args, check=False)  # noqa: S603
     return response.returncode
 
 
@@ -613,7 +617,7 @@ def run(args: list[str]) -> int:
 
     if args[0].lower() == "-noop":
         mc_args = args[1:]
-        log("Not preforming any class path rewrites, -noop flag given.")
+        log("Not performing any class path rewrites, -noop flag given.")
     else:
         loop = asyncio.new_event_loop()
         try:

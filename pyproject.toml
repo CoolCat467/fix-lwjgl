@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42.0", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -52,14 +52,60 @@ warn_unused_ignores = true
 
 [tool.black]
 line-length = 79
-target-version = ['py311']
+target-version = ['py38']
 
-[tool.isort]
-profile = "black"
-combine_as_imports = true
-line_length = 79
-skip = [".git", ".github", ".venv"]
+[tool.ruff.isort]
+combine-as-imports = true
 
 [tool.pycln]
 all = true
 disable_all_dunder_policy = true
+
+[tool.ruff]
+line-length = 79
+fix = true
+
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
+select = [
+    "A",  # flake8-builtins
+    "ASYNC",  # flake8-async
+    "B",  # flake8-bugbear
+    "E",  # Error
+    "F",  # pyflakes
+    "I",  # isort
+    "RUF",  # Ruff-specific rules
+    "S",  # flake8-bandit
+    "UP",  # pyupgrade
+    "W",  # Warning
+    "YTT",  # flake8-2020
+]
+extend-ignore = [
+    'E501',  # line-too-long
+    "S101",  # use of assert for tests and type narrowing
+]
+
+[tool.tox]
+legacy_tox_ini = """
+    [tox]
+    envlist = py311, mypy
+    isolated_build = false
+
+    [gh-actions]
+    python =
+        3.11: py311, pytest, mypy
+
+    [testenv]
+    setenv =
+        PYTHONPATH = {toxinidir}
+
+    [testenv:pytest]
+    deps =
+        pytest
+        pytest-cov
+    commands = pytest --basetemp={envtmpdir}
+
+    [testenv:mypy]
+    deps =
+        mypy
+    commands = mypy src
+"""

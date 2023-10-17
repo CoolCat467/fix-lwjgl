@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Generate File Listing - Put into a folder, run, now you have a file listing
 
 "Generate File Listing"

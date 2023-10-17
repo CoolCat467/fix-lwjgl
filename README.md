@@ -1,6 +1,13 @@
 # fix-lwjgl
 Fix LWJGL (Light Weight Java Game Library) version used in Minecraft for ARM devices
 
+<!-- BADGIE TIME -->
+
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![code style: black](https://img.shields.io/badge/code_style-black-000000.svg)](https://github.com/psf/black)
+
+<!-- END BADGIE TIME -->
+
 ## Description
 This script is a wrapper for launching Minecraft on devices that aren't properly
 supported by Mojang, such as computer with ARM processors like the Raspberry Pi 3 and 4.
