@@ -34,7 +34,7 @@ Clone this repository onto your computer, ensure Python 3 is installed, and use 
 install this project.
 
 ```bash
-git clone https://github.com/CoolCat467/fix-lwjgl.git && pip install ../fix-lwjgl
+pip install git+https://github.com/CoolCat467/fix-lwjgl.git
 ```
 
 On default, all LWJGL files are expected to be in
