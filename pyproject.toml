@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools >= 64"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "fix_lwjgl"
-version = "1.3.0"
+dynamic = ["version"]
 authors = [
-  { name="CoolCat467" },
+  { name="CoolCat467", email="CoolCat467@duck.com" },
 ]
 description = "Fix LWJGL (Light Weight Java Game Library) version used in Minecraft for ARM devices"
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -14,21 +14,39 @@ license = {file = "LICENSE"}
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Games/Entertainment",
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
-keywords = ["minecraft", "raspberry-pi", "lwjgl", "lwjgl2", "lwjgl3", "wrapper-script"]
+keywords = [
+    "minecraft", "raspberry-pi", "lwjgl", "lwjgl2", "lwjgl3",
+    "wrapper-script"
+]
 dependencies = [
     "aiohttp==3.9.1"
 ]
 
+[tool.setuptools.dynamic]
+version = {attr = "fix_lwjgl.__init__.__version__"}
+
 [project.urls]
-"Homepage" = "https://github.com/CoolCat467/fix-lwjgl"
 "Source" = "https://github.com/CoolCat467/fix-lwjgl"
 "Bug Tracker" = "https://github.com/CoolCat467/fix-lwjgl/issues"
 
 [project.scripts]
 fix_lwjgl_wrapper = "fix_lwjgl:cli_run"
+
+[tool.setuptools.package-data]
+fix_lwjgl = ["py.typed"]
 
 [tool.mypy]
 mypy_path = "src"
@@ -50,10 +68,6 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 
-[tool.black]
-line-length = 79
-target-version = ['py38']
-
 [tool.ruff.isort]
 combine-as-imports = true
 
@@ -61,27 +75,51 @@ combine-as-imports = true
 all = true
 disable_all_dunder_policy = true
 
+[tool.black]
+line-length = 79
+target-version = ['py38']
+
 [tool.ruff]
 line-length = 79
 fix = true
 
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
 select = [
-    "A",  # flake8-builtins
-    "ASYNC",  # flake8-async
-    "B",  # flake8-bugbear
-    "E",  # Error
-    "F",  # pyflakes
-    "I",  # isort
-    "RUF",  # Ruff-specific rules
-    "S",  # flake8-bandit
-    "UP",  # pyupgrade
-    "W",  # Warning
-    "YTT",  # flake8-2020
+    "A",     # flake8-builtins
+    "ASYNC", # flake8-async
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "E",     # Error
+    "F",     # pyflakes
+    "FA",    # flake8-future-annotations
+    "I",     # isort
+    "N",     # pep8-naming
+    "PT",    # flake8-pytest-style
+    "PYI",   # flake8-pyi
+    "RET",   # flake8-return
+    "RUF",   # Ruff-specific rules
+    "S",     # flake8-bandit
+    "SIM",   # flake8-simplify
+    "SLOT",  # flake8-slots
+    "TCH",   # flake8-type-checking
+    "UP",    # pyupgrade
+    "W",     # Warning
+    "YTT",   # flake8-2020
 ]
 extend-ignore = [
-    'E501',  # line-too-long
-    "S101",  # use of assert for tests and type narrowing
+    "E501",   # line-too-long
+    "S101",   # use of assert for tests and type narrowing
+    "D203",   # One blank line before class
+    "D204",   # blank line thing
+    "D211",   # no-blank-line-before-class
+    "D213",   # multi-line-summary-second-line
+    "SIM117", # Use multiple with statements at the same time
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov-report term-missing --cov=fix_lwjgl"
+testpaths = [
+    "tests",
 ]
 
 [tool.tox]

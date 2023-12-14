@@ -3,6 +3,8 @@
 
 "Generate File Listing"
 
+from __future__ import annotations
+
 # Programmed by CoolCat467
 
 __title__ = "Generate File List"

@@ -25,6 +25,8 @@
 
 "Fix lwjgl class paths for minecraft"
 
+from __future__ import annotations
+
 # Helpful pre-launch command for Raspberry Pi OS:
 # export MESA_GL_VERSION_OVERRIDE=4.2COMPAT
 
