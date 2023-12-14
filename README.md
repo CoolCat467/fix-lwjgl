@@ -12,13 +12,15 @@ Fix LWJGL (Light Weight Java Game Library) version used in Minecraft for ARM dev
 
 ## Description
 This script is a wrapper for launching Minecraft on devices that aren't properly
-supported by Mojang, such as computer with ARM processors like the Raspberry Pi 3 and 4.
+supported by Mojang, such as computers with ARM processors like the Raspberry Pi 3 and 4.
 On these devices, the wrong version of LWJGL is downloaded, preventing minecraft
-from working properly. This program takes the arguments that would have been
+from launching properly. This program takes the arguments that would have been
 used to run Minecraft and rewrites a few details about LWJGL, pointing minecraft
 to use a user-specified folder as the LWJGL library library path for the
 shared object files and in the case of LWJGL 3, changing the
 java class path information to use the correct files for your machine.
+
+Basically, it means minecraft works now!
 
 ## Testing
 This program has been tested successfully with [ATLauncher](https://github.com/ATLauncher/ATLauncher)
@@ -29,11 +31,11 @@ This *might* work on the new Apple M1 chips, as they are arm64 processors,
 but this is unlikely without changes. I have not tested this either.
 
 If possible, if this script works on anything not listed as tested, please
-tell me using discussions.
+tell me using [discussions](https://github.com/CoolCat467/fix-lwjgl/discussions).
 
 ## Installation
-Clone this repository onto your computer, ensure Python 3 is installed, and use pip to
-install this project.
+Ensure Python 3 is installed on your computer, and use pip to
+install this project with the command listed below:
 
 ```bash
 pip install git+https://github.com/CoolCat467/fix-lwjgl.git
@@ -46,8 +48,8 @@ folder does not exist or files are missing (only checks in lwjgl 3 mode), the fo
 is created and all required files are downloaded from https://build.lwjgl.org/
 (browse at https://www.lwjgl.org/browse)
 
-If it needs the lwjgl 2 folder, it will download the folders in this repository.
-If it needs any lwjgl 3 modules, it will download them from lwjgl's build repository
+If this script needs the LWJGL 2 folder, it will download the folders in this repository.
+If this script needs any LWJGL 3 modules, it will download them from LWJGL's build repository
 available to browse at https://www.lwjgl.org/browse
 
 ## Configuration
@@ -59,7 +61,8 @@ include:
 
 ## Usage
 Go to your Minecraft launcher, and somewhere in settings is likely the ability to
-set a "wrapper command". Set it to `fix_lwjgl_wrapper` and everything *should* be good.
+set a "wrapper command". Set it to `fix_lwjgl_wrapper` after you install the script
+and everything *should* be good.
 
 On Raspberry Pi OS bullseye in particular, it might be useful to have this "pre-launch"
 command if you are experiencing crashes:
