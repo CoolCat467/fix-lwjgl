@@ -32,7 +32,7 @@ keywords = [
     "wrapper-script"
 ]
 dependencies = [
-    "aiohttp==3.9.1"
+    "aiohttp~=3.9.1"
 ]
 
 [tool.setuptools.dynamic]
@@ -89,13 +89,18 @@ select = [
     "ASYNC", # flake8-async
     "B",     # flake8-bugbear
     "C4",    # flake8-comprehensions
+    "COM",   # flake8-commas
+    "D",     # pydocstyle
     "E",     # Error
+    "EXE",   # flake8-executable
     "F",     # pyflakes
     "FA",    # flake8-future-annotations
     "I",     # isort
     "N",     # pep8-naming
+    "PIE",   # flake8-pie
     "PT",    # flake8-pytest-style
     "PYI",   # flake8-pyi
+    "Q",     # flake8-quotes
     "RET",   # flake8-return
     "RUF",   # Ruff-specific rules
     "S",     # flake8-bandit
