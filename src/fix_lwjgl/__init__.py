@@ -661,7 +661,7 @@ def run(args: list[str]) -> int:
     if not args:
         log("No java arguments to rewrite lwjgl class paths for!")
         log(
-            "Make sure you are using `Wrapper Command` and not pre or post launch command!"
+            "Make sure you are using `Wrapper Command` and not pre or post launch command!",
         )
         return 1
 
