@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # Generate File Listing - Put into a folder, run, now you have a file listing
 
-"Generate File Listing"
+"""Generate File Listing."""
+
+from __future__ import annotations
 
 # Programmed by CoolCat467
 
 __title__ = "Generate File List"
 __author__ = "CoolCat467"
 __version__ = "0.1.1"
-__ver_major__ = 0
-__ver_minor__ = 1
-__ver_patch__ = 1
 
 import json
 import os
@@ -18,9 +17,10 @@ from typing import Any, Container
 
 
 def get_file_list(
-    root: str, ignore_paths: Container | None = None
+    root: str,
+    ignore_paths: Container | None = None,
 ) -> dict[str, dict | list[str]]:
-    "Return file list dictionary"
+    """Return file list dictionary."""
     if ignore_paths is None:
         ignore: Container = set()
     else:
@@ -53,7 +53,7 @@ def get_file_list(
 
 
 def run() -> None:
-    "Generate file listing for update module."
+    """Generate file listing for update module."""
     root, this = os.path.split(__file__)
     ignore = (this,)
 

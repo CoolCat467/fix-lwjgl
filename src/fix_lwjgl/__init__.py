@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
-# Program that fixes LWJGL java class path data for minecraft
+"""Fix lwjgl class paths for minecraft."""
 
+# Program that fixes LWJGL java class path data for minecraft
 # MIT License
-#
 # Copyright (c) 2022 CoolCat467
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"Fix lwjgl class paths for minecraft"
+from __future__ import annotations
 
 # Helpful pre-launch command for Raspberry Pi OS:
 # export MESA_GL_VERSION_OVERRIDE=4.2COMPAT
@@ -53,7 +52,8 @@ import aiohttp
 
 HOME = os.getenv("HOME", os.path.expanduser("~"))
 XDG_DATA_HOME = os.getenv(
-    "XDG_DATA_HOME", os.path.join(HOME, ".local", "share")
+    "XDG_DATA_HOME",
+    os.path.join(HOME, ".local", "share"),
 )
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", os.path.join(HOME, ".config"))
 
@@ -113,10 +113,10 @@ ARCH_PATH_RENAME: Final = {
 
 
 def get_paths(jdict: dict[str, Any]) -> list[str]:
-    "Read dictionary and figure out paths of files we want to update."
+    """Read dictionary and figure out paths of files we want to update."""
 
     def read_dict(cdict: dict[str, Any]) -> list[str]:
-        "Read a dictionary and return paths."
+        """Read a dictionary and return paths."""
         paths = []
         for path in cdict:
             nxt = cdict[path]
@@ -137,17 +137,19 @@ def get_paths(jdict: dict[str, Any]) -> list[str]:
 
 
 def get_address(user: str, repo: str, branch: str, path: str) -> str:
-    "Get raw GitHub user content URL of a specific file."
+    """Get raw GitHub user content URL of a specific file."""
     return f"https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}"
 
 
 async def download_coroutine(
-    session: aiohttp.ClientSession, url: str
+    session: aiohttp.ClientSession,
+    url: str,
 ) -> bytes:
-    "Return content bytes found at URL."
+    """Return content bytes found at URL."""
     if not ALLOWED_TO_DOWNLOAD:
         log(
-            f'Not allowed to download "{url}" because of configuration file', 1
+            f'Not allowed to download "{url}" because of configuration file',
+            1,
         )
         sys.exit(1)
 
@@ -164,7 +166,7 @@ async def download_coroutine(
 
 
 def log(msg: str, level: int = 0) -> None:
-    "Log message."
+    """Log message."""
     lvl = ("INFO", "ERROR")[level]
     if level != 0:
         msg += "\a"
@@ -172,28 +174,34 @@ def log(msg: str, level: int = 0) -> None:
 
 
 def get_lwjgl_file_url(
-    filepath: str, lwjgl_vers: str = "latest", branch: str = "release"
+    filepath: str,
+    lwjgl_vers: str = "latest",
+    branch: str = "release",
 ) -> str:
-    "Return the URL of lwjgl file required."
+    """Return the URL of lwjgl file required."""
     return f"https://build.lwjgl.org/{branch}/{lwjgl_vers}/{filepath}"
 
 
 class Module:
-    "LWJGL Module class. Has filenames and file download paths."
+    """LWJGL Module class. Has filenames and file download paths."""
+
     __slots__ = ("name",)
 
     def __init__(self, name: str) -> None:
+        """Initialize module with name."""
         self.name = name
 
     def __repr__(self) -> str:
+        """Return representation of self."""
         return f"{self.__class__.__name__}({self.name!r})"
 
     def __str__(self) -> str:
+        """Return module name."""
         return self.name
 
     @property
     def system_library(self) -> str:
-        "System library for this module"
+        """System library for this module."""
         pre = "lib"
         end = "so"
         if OS == "macos":
@@ -215,7 +223,7 @@ class Module:
 
     @property
     def filenames(self) -> tuple[str, str]:
-        "Tuple of module jar, module natives jar, and so file."
+        """Tuple of module jar, module natives jar, and so file."""
         natives_vers = OS if ARCH in ARCH_IGNORE else f"{OS}-{ARCH}"
         return (
             f"{self.name}.jar",
@@ -225,7 +233,7 @@ class Module:
 
     @property
     def file_paths(self) -> tuple[str, str]:
-        "Tuple of lwjgl repository paths to module jar and natives."
+        """Tuple of lwjgl repository paths to module jar and natives."""
         natives_vers = OS if ARCH in ARCH_IGNORE else f"{OS}-{ARCH}"
         # arch_path = f'{OS}/{ARCH}'
         # arch_path = ARCH_PATH_RENAME.get(arch_path, arch_path)
@@ -236,12 +244,12 @@ class Module:
         )
 
     def __iter__(self) -> Iterator[str]:
-        "Return iterator of self.filenames"
+        """Return iterator of self.filenames."""
         return iter(self.filenames)
 
 
 def test_modules() -> None:
-    "Test modules system"
+    """Test modules system."""
     names = (
         "lwjgl",
         "lwjgl-jemalloc",
@@ -257,9 +265,11 @@ def test_modules() -> None:
 
 
 async def download_file(
-    session: aiohttp.ClientSession, url: str, folder: str
+    session: aiohttp.ClientSession,
+    url: str,
+    folder: str,
 ) -> str:
-    "Download files into given folder. Return file path saved to."
+    """Download files into given folder. Return file path saved to."""
     filename = url.split("/")[-1]
     filepath = os.path.join(folder, filename)
     if os.path.exists(filepath):
@@ -277,17 +287,21 @@ async def download_file(
 
 
 async def download_files(
-    session: aiohttp.ClientSession, urls: list[str], folder: str
+    session: aiohttp.ClientSession,
+    urls: list[str],
+    folder: str,
 ) -> list[str]:
-    "Download multiple files from given URLs into a given folder."
+    """Download multiple files from given URLs into a given folder."""
     coros = [download_file(session, url, folder) for url in urls]
     return await asyncio.gather(*coros)
 
 
 async def download_lwjgl_files(
-    session: aiohttp.ClientSession, urls: list[str], lwjgl_folder: str
+    session: aiohttp.ClientSession,
+    urls: list[str],
+    lwjgl_folder: str,
 ) -> None:
-    "Download lwjgl files from URLs"
+    """Download lwjgl files from URLs."""
     if not os.path.exists(lwjgl_folder):
         log(f'"{lwjgl_folder}" does not exist, creating it.')
         os.makedirs(lwjgl_folder)
@@ -307,7 +321,7 @@ async def download_lwjgl3_files(
     lwjgl_vers: str = "latest",
     branch: str = "release",
 ) -> None:
-    "Download lwjgl 3 files given modules and lwjgl folder."
+    """Download lwjgl 3 files given modules and lwjgl folder."""
     urls = []
     for module in modules:
         for file_path in module.file_paths:
@@ -350,9 +364,10 @@ async def download_lwjgl3_files(
 
 
 async def rewrite_class_path_lwjgl3(
-    loop: asyncio.AbstractEventLoop, class_path: list[str]
+    loop: asyncio.AbstractEventLoop,
+    class_path: list[str],
 ) -> list[str]:
-    "Rewrite java class-path for lwjgl 3"
+    """Rewrite java class-path for lwjgl 3."""
     handled = set()
 
     new_lwjgl = os.path.join(BASE_FOLDER, f"lwjgl_3{ARCH}")
@@ -401,7 +416,7 @@ async def rewrite_class_path_lwjgl3(
         vers = ".".join(map(str, specific_vers))
         log(
             "The following lwjgl modules were not found in "
-            f'"{new_lwjgl}": {names}'
+            f'"{new_lwjgl}": {names}',
         )
         await download_lwjgl3_files(loop, to_get, new_lwjgl, vers, "release")
 
@@ -409,19 +424,24 @@ async def rewrite_class_path_lwjgl3(
 
 
 async def download_lwjgl2_files(
-    loop: asyncio.AbstractEventLoop, lwjgl_folder: str
+    loop: asyncio.AbstractEventLoop,
+    lwjgl_folder: str,
 ) -> None:
-    "Download lwjgl 2 files from GitHub."
+    """Download lwjgl 2 files from GitHub."""
     base = f"lwjgl2{ARCH}"
     lookup_file = f"{base}/files.json"
     listing_url = get_address(
-        __author__, "fix-lwjgl", "HEAD", f"{lookup_file}"
+        __author__,
+        "fix-lwjgl",
+        "HEAD",
+        f"{lookup_file}",
     )
 
     client_timeout = aiohttp.ClientTimeout(TIMEOUT)
     # Make a session with our event loop
     async with aiohttp.ClientSession(
-        loop=loop, timeout=client_timeout
+        loop=loop,
+        timeout=client_timeout,
     ) as session:
         listing = await download_coroutine(session, listing_url)
         paths = get_paths(json.loads(listing))
@@ -435,9 +455,10 @@ async def download_lwjgl2_files(
 
 
 async def rewrite_class_path_lwjgl2(
-    loop: asyncio.AbstractEventLoop, class_path: list[str]
+    loop: asyncio.AbstractEventLoop,
+    class_path: list[str],
 ) -> list[str]:
-    "Rewrite java class-path for lwjgl 2"
+    """Rewrite java class-path for lwjgl 2."""
     new_lwjgl = os.path.join(BASE_FOLDER, f"lwjgl_2{ARCH}")
 
     download = False
@@ -515,7 +536,8 @@ def discover_lwjgl_version(version_string: str) -> int:
 
 
 async def rewrite_mc_args(
-    loop: asyncio.AbstractEventLoop, mc_args: list[str]
+    loop: asyncio.AbstractEventLoop,
+    mc_args: list[str],
 ) -> list[str]:
     """Rewrite minecraft arguments."""
     global BASE_FOLDER  # pylint: disable=global-statement
@@ -542,7 +564,7 @@ async def rewrite_mc_args(
         if lwjgl_vers == 2:
             log(
                 "LWJGL library path is not supplied, setting it to "
-                f'"{lib_path}"'
+                f'"{lib_path}"',
             )
             arg = f"-Dorg.lwjgl.librarypath={lib_path}"
             mc_args.insert(cls_path - 1, arg)
@@ -566,7 +588,7 @@ async def rewrite_mc_args(
 
 
 def launch_mc(mc_args: list[str]) -> int:
-    "Launch minecraft with given arguments"
+    """Launch minecraft with given arguments."""
     log("Launching minecraft from arguments...")
     # log(f'Launch Arguments: {" ".join(mc_args)}')
     # Can't easily check for untrusted input, and launchers have the same
@@ -578,7 +600,7 @@ def launch_mc(mc_args: list[str]) -> int:
 
 
 def run(args: list[str]) -> int:
-    "Fix LWJGL class-path and run minecraft"
+    """Fix LWJGL class-path and run minecraft."""
     global BASE_FOLDER, ALLOWED_TO_DOWNLOAD, TIMEOUT
 
     if not os.path.exists(CONFIG_PATH):
@@ -629,8 +651,8 @@ def run(args: list[str]) -> int:
                     "lwjgl_base_path": os.path.expanduser(BASE_FOLDER),
                     "can_download": ALLOWED_TO_DOWNLOAD,
                     "download_timeout": str(TIMEOUT),
-                }
-            }
+                },
+            },
         )
 
         with open(MAIN_CONFIG, "w", encoding="utf-8") as file_point:
@@ -656,7 +678,7 @@ def run(args: list[str]) -> int:
 
 
 def cli_run() -> None:
-    """Command line run entry point"""
+    """Command line run entry point."""
     log(f"{__title__} v{__version__} Programmed by {__author__}.")
     sys.exit(run(sys.argv[1:]))
 
