@@ -35,7 +35,7 @@ from __future__ import annotations
 
 __title__ = "Fix-LWJGL"
 __author__ = "CoolCat467"
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 __license__ = "MIT"
 
 
