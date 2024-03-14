@@ -68,7 +68,7 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 
 [tool.pycln]
@@ -84,6 +84,8 @@ line-length = 79
 fix = true
 
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
+
+[tool.ruff.lint]
 select = [
     "A",     # flake8-builtins
     "ASYNC", # flake8-async
@@ -119,6 +121,13 @@ extend-ignore = [
     "D211",   # no-blank-line-before-class
     "D213",   # multi-line-summary-second-line
     "SIM117", # Use multiple with statements at the same time
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "D100",  # undocumented-public-module
+    "D103",  # undocumented-public-function
+    "D107",  # Missing docstring
 ]
 
 [tool.pytest.ini_options]
@@ -158,12 +167,16 @@ partial_branches = [
 [tool.tox]
 legacy_tox_ini = """
     [tox]
-    envlist = py311, mypy
+    envlist = py38, py39, py310, py311, py312, mypy, pytest
     isolated_build = false
 
     [gh-actions]
     python =
-        3.11: py311, pytest, mypy
+        3.8: py38, pytest, mypy
+        3.9: py39, pytest
+        3.10: py310, pytest
+        3.11: py311, pytest
+        3.12: py312, pytest, mypy
 
     [testenv]
     setenv =
