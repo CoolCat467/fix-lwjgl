@@ -543,6 +543,7 @@ async def rewrite_mc_args(
     global BASE_FOLDER  # pylint: disable=global-statement
 
     if "-cp" not in mc_args:
+        log("Missing classpath argument!", 1)
         return mc_args
 
     raw_version = "Legacy Minecraft"
@@ -560,7 +561,7 @@ async def rewrite_mc_args(
     cls_path = mc_args.index("-cp")
 
     if lib_path is None:
-        lib_path = os.path.expanduser(f"{BASE_FOLDER}{lwjgl_vers}{ARCH}")
+        lib_path = os.path.join(BASE_FOLDER, f"lwjgl_{lwjgl_vers}{ARCH}")
         if lwjgl_vers == 2:
             log(
                 "LWJGL library path is not supplied, setting it to "
@@ -673,19 +674,24 @@ def run(args: list[str]) -> int:
             log("Missing argument(s) <mc-version> [<custom-install-path>]")
             return 1
         args = ["--version", arguments[0]]
+        lwjgl_version = discover_lwjgl_version(arguments[0])
         if len(arguments) >= 2 and arguments[1]:
             args.append(f"-Dorg.lwjgl.librarypath={arguments[1]}")
-        lwjgl_vers = "3.3.1"
-        files = (
-            f"lwjgl/lwjgl/{lwjgl_vers}",
-            f"lwjgl/lwjgl-jemalloc/{lwjgl_vers}",
-            f"lwjgl/lwjgl-openal/{lwjgl_vers}",
-            f"lwjgl/lwjgl-opengl/{lwjgl_vers}",
-            f"lwjgl/lwjgl-glfw/{lwjgl_vers}",
-            f"lwjgl/lwjgl-stb/{lwjgl_vers}",
-            f"lwjgl/lwjgl-tinyfd/{lwjgl_vers}",
-        )
-        args.extend(("-cp", os.pathsep.join(files)))
+        args.append("-cp")
+        if lwjgl_version == 3:
+            lwjgl_vers = "3.3.1"
+            files = (
+                f"lwjgl/lwjgl/{lwjgl_vers}",
+                f"lwjgl/lwjgl-jemalloc/{lwjgl_vers}",
+                f"lwjgl/lwjgl-openal/{lwjgl_vers}",
+                f"lwjgl/lwjgl-opengl/{lwjgl_vers}",
+                f"lwjgl/lwjgl-glfw/{lwjgl_vers}",
+                f"lwjgl/lwjgl-stb/{lwjgl_vers}",
+                f"lwjgl/lwjgl-tinyfd/{lwjgl_vers}",
+            )
+            args.append(os.pathsep.join(files))
+        else:
+            args.append("")
 
     if first_arg == "-noop":
         mc_args = args[1:]
