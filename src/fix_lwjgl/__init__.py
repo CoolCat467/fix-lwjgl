@@ -560,7 +560,7 @@ async def rewrite_mc_args(
     cls_path = mc_args.index("-cp")
 
     if lib_path is None:
-        lib_path = os.path.expanduser(f"{BASE_FOLDER}{lwjgl_vers}{ARCH}")
+        lib_path = os.path.join(BASE_FOLDER, f"lwjgl_{lwjgl_vers}{ARCH}")
         if lwjgl_vers == 2:
             log(
                 "LWJGL library path is not supplied, setting it to "
@@ -665,7 +665,9 @@ def run(args: list[str]) -> int:
         )
         return 1
 
-    if args[0].lower() == "-noop":
+    first_arg = args[0].lower()
+
+    if first_arg == "-noop":
         mc_args = args[1:]
         log("Not performing any class path rewrites, -noop flag given.")
     else:
