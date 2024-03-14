@@ -2,7 +2,7 @@
 
 # Program that fixes LWJGL java class path data for minecraft
 # MIT License
-# Copyright (c) 2022 CoolCat467
+# Copyright (c) 2022-2024 CoolCat467
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ from __future__ import annotations
 
 __title__ = "Fix-LWJGL"
 __author__ = "CoolCat467"
-__version__ = "1.3.0"
+__version__ = "1.3.1-dev"
 __license__ = "MIT"
 
 
@@ -637,7 +637,29 @@ def run(args: list[str]) -> int:
         log("No java arguments to rewrite lwjgl class paths for!")
         return 1
 
-    if args[0].lower() == "-noop":
+    first_arg = args[0].lower()
+
+    if first_arg == "--install-for":
+        arguments = args[1:]
+        if not arguments:
+            log("Missing argument(s) <mc-version> [<custom-install-path>]")
+            return 1
+        args = ["--version", arguments[0]]
+        if len(arguments) >= 2 and arguments[1]:
+            args.append(f"-Dorg.lwjgl.librarypath={arguments[1]}")
+        lwjgl_vers = "3.3.1"
+        files = (
+            f"lwjgl/lwjgl/{lwjgl_vers}",
+            f"lwjgl/lwjgl-jemalloc/{lwjgl_vers}",
+            f"lwjgl/lwjgl-openal/{lwjgl_vers}",
+            f"lwjgl/lwjgl-opengl/{lwjgl_vers}",
+            f"lwjgl/lwjgl-glfw/{lwjgl_vers}",
+            f"lwjgl/lwjgl-stb/{lwjgl_vers}",
+            f"lwjgl/lwjgl-tinyfd/{lwjgl_vers}",
+        )
+        args.extend(("-cp", os.pathsep.join(files)))
+
+    if first_arg == "-noop":
         mc_args = args[1:]
         log("Not performing any class path rewrites, -noop flag given.")
     else:
@@ -646,6 +668,11 @@ def run(args: list[str]) -> int:
             mc_args = loop.run_until_complete(rewrite_mc_args(loop, args))
         finally:
             loop.close()
+
+    if first_arg == "--install-for":
+        print_args = " ".join(map(str, mc_args))
+        log(f"Rewritten arguments: `{print_args}`")
+        return 0
     return launch_mc(mc_args)
 
 
