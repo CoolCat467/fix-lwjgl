@@ -1,6 +1,3 @@
-# Files program creates
-fix_lwjgl_config.txt
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
