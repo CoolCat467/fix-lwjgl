@@ -509,6 +509,32 @@ async def rewrite_class_path_lwjgl2(
     return class_path
 
 
+def discover_lwjgl_version(version_string: str) -> int:
+    """Discover version of lwjgl to use from version string."""
+    # Extract grouped numbers
+    parsed = []
+    current = ""
+    # Extra space at end means last number group will
+    # be added to parsed properly because digit check fails
+    for char in f"{version_string} ":
+        if char in "0123456789":
+            current += char
+        elif current:
+            parsed.append(int(current))
+            current = ""
+
+    parsed_version = tuple(parsed)
+
+    if "w" in version_string:
+        # The snapshot minecraft updated to lwjgl 3 is apparently 17w43b
+        if parsed_version >= (17, 43):
+            return 3
+        return 2
+    if parsed_version >= (1, 13):
+        return 3
+    return 2
+
+
 async def rewrite_mc_args(
     loop: asyncio.AbstractEventLoop,
     mc_args: list[str],
@@ -519,17 +545,17 @@ async def rewrite_mc_args(
     if "-cp" not in mc_args:
         return mc_args
 
-    mc_vers = tuple(
-        map(int, mc_args[mc_args.index("--version") + 1].split(".")),
-    )
-    lwjgl_vers = 2 if mc_vers < (1, 13) else 3
-    # The snapshot minecraft updated to lwjgl 3 is apparently 17w43b
-    # TODO: Handle snapshots properly
+    raw_version = "Legacy Minecraft"
+    lwjgl_vers = 2
+    if "--version" in mc_args:
+        raw_version = mc_args[mc_args.index("--version") + 1]
+        lwjgl_vers = discover_lwjgl_version(raw_version)
 
-    lib_path = None
-    for arg in mc_args:
+    lib_path: str | None = None
+    for arg in reversed(mc_args):
         if arg.startswith("-Dorg.lwjgl.librarypath="):
             lib_path = arg.split("=", 1)[1]
+            break
 
     cls_path = mc_args.index("-cp")
 
@@ -556,8 +582,7 @@ async def rewrite_mc_args(
 
     mc_args[cls_path + 1] = os.pathsep.join(class_path)
 
-    mc_ver_text = ".".join(map(str, mc_vers))
-    log(f"Rewrote lwjgl class paths for {mc_ver_text} (LWJGL {lwjgl_vers})")
+    log(f"Rewrote lwjgl class paths for {raw_version} (LWJGL {lwjgl_vers})")
 
     return mc_args
 
@@ -635,6 +660,9 @@ def run(args: list[str]) -> int:
 
     if not args:
         log("No java arguments to rewrite lwjgl class paths for!")
+        log(
+            "Make sure you are using `Wrapper Command` and not pre or post launch command!",
+        )
         return 1
 
     if args[0].lower() == "-noop":
