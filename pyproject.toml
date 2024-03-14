@@ -163,7 +163,11 @@ legacy_tox_ini = """
 
     [gh-actions]
     python =
-        3.11: py311, pytest, mypy
+        3.8: py38, pytest, mypy
+        3.9: py39, pytest
+        3.10: py310, pytest
+        3.11: py311, pytest
+        3.12: py312, pytest, mypy
 
     [testenv]
     setenv =
