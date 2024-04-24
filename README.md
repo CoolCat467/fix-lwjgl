@@ -42,8 +42,8 @@ pip install git+https://github.com/CoolCat467/fix-lwjgl.git
 ```
 
 On default, all LWJGL files are expected to be in
-`$HOME/.local/share/fix_lwjgl/lwjgl{lwjgl_version}{system_arch}`, so
-if the script was run on Raspberry Pi OS 32 bit, it would be `lwjgl3arm32`. If this
+`$HOME/.local/share/fix_lwjgl/lwjgl_{lwjgl_version}{system_arch}`, so
+if the script was run on Raspberry Pi OS 32 bit, it would be `lwjgl_3arm32`. If this
 folder does not exist or files are missing (only checks in lwjgl 3 mode), the folder
 is created and all required files are downloaded from https://build.lwjgl.org/
 (browse at https://www.lwjgl.org/browse)
