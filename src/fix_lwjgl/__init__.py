@@ -1,8 +1,8 @@
-"""Fix lwjgl class paths for minecraft."""
+"""Fix LWJGL class paths for Minecraft."""
 
-# Program that fixes LWJGL java class path data for minecraft
+# Program that fixes LWJGL java class path data for Minecraft
 # MIT License
-# Copyright (c) 2022 CoolCat467
+# Copyright (c) 2022-2024 CoolCat467
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -93,12 +93,20 @@ ARCH_IGNORE: Final = {"x86_64", "x32"}
 
 # SO files in lwjgl build repository that don't start with
 # "lwjgl_"
-NOPRE_SO: Final = (
+SO_NO_PREFIX: Final = (
     "assimp",
     "bgfx",
+    "draco",
+    "freetype",
     "glfw",
+    "glfw_async",
+    "harfbuzz",
+    "hwloc",
     "jemalloc",
+    "ktx",
     "openal",
+    "openvr_api",
+    "openxr_loader",
     "opus",
     "shaderc",
     "spirv-cross",
@@ -212,7 +220,7 @@ class Module:
         if "-" not in self.name:
             return f"{pre}{self.name}.{end}"
         base = self.name.split("-")[1]
-        if base.lower() in NOPRE_SO:
+        if base.lower() in SO_NO_PREFIX:
             if OS == "windows" and base == "openal":  # Strange oddity
                 base = "OpenAL"
             elif OS == "macos" and base == "moltenvk":
@@ -543,6 +551,7 @@ async def rewrite_mc_args(
     global BASE_FOLDER  # pylint: disable=global-statement
 
     if "-cp" not in mc_args:
+        log("Missing classpath argument, skipping rewriting arguments!", 1)
         return mc_args
 
     raw_version = "Legacy Minecraft"
