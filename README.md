@@ -29,6 +29,7 @@ on a Raspberry Pi 4 running 64 bit Raspberry Pi OS bullseye. It should work
 for 32 bit Raspberry Pi OS bullseye, but I have not tested that yet.
 
 Eagle3820 has successfully gotten this script working on an M3 Mac!
+Lolmc0587 has successfully gotten this script working on an Orange Pi 5 with Ubuntu!
 
 This script might also work other platforms with arm processors, but may require minor changes.
 
