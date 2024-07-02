@@ -289,7 +289,7 @@ async def download_file(
     ):
         raise OSError(f'"{filename}" does not exist according to "{url}"!')
     # Could have aiofiles dependency and fix this, but I would rather not.
-    with open(filepath, "wb") as sfile:  # noqa: ASYNC101  # sync `open`
+    with open(filepath, "wb") as sfile:  # sync `open`
         sfile.write(data)
     return filepath
 
