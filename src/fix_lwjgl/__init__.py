@@ -35,11 +35,10 @@ from __future__ import annotations
 
 __title__ = "Fix-LWJGL"
 __author__ = "CoolCat467"
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 __license__ = "MIT"
 
 
-import asyncio
 import json
 import os
 import platform
@@ -48,7 +47,8 @@ import sys
 from configparser import ConfigParser
 from typing import Any, Final, Iterable, Iterator
 
-import aiohttp
+import httpx
+import trio
 
 HOME = os.getenv("HOME", os.path.expanduser("~"))
 XDG_DATA_HOME = os.getenv(
@@ -150,7 +150,7 @@ def get_address(user: str, repo: str, branch: str, path: str) -> str:
 
 
 async def download_coroutine(
-    session: aiohttp.ClientSession,
+    client: httpx.AsyncClient,
     url: str,
 ) -> bytes:
     """Return content bytes found at URL."""
@@ -159,17 +159,16 @@ async def download_coroutine(
             f'Not allowed to download "{url}" because of configuration file',
             1,
         )
-        sys.exit(1)
+        sys.exit(1)  # Not allowed to download because of configuration file
 
     # Go to the URL and get response
-    try:
-        async with session.get(url) as response:
-            # Wait for our response
-            data = await response.content.read()
-            response.close()
-    except asyncio.TimeoutError:
-        log(f'Timeout Error while downloading from "{url}"', 1)
-        raise
+    response = await client.get(url)
+    if response.is_error:
+        response.raise_for_status()
+    # Wait for our response
+    data = await response.aread()
+    await response.aclose()
+
     return data
 
 
@@ -273,7 +272,7 @@ def test_modules() -> None:
 
 
 async def download_file(
-    session: aiohttp.ClientSession,
+    client: httpx.AsyncClient,
     url: str,
     folder: str,
 ) -> str:
@@ -282,7 +281,7 @@ async def download_file(
     filepath = os.path.join(folder, filename)
     if os.path.exists(filepath):
         return filepath
-    data = await download_coroutine(session, url)
+    data = await download_coroutine(client, url)
     if (
         b'<?xml version="1.0" encoding="UTF-8"?>\n<Error>' in data
         or b"404: Not Found" in data
@@ -295,17 +294,25 @@ async def download_file(
 
 
 async def download_files(
-    session: aiohttp.ClientSession,
+    client: httpx.AsyncClient,
     urls: list[str],
     folder: str,
 ) -> list[str]:
     """Download multiple files from given URLs into a given folder."""
-    coros = [download_file(session, url, folder) for url in urls]
-    return await asyncio.gather(*coros)
+    files: list[str] = []
+
+    async def do_download(url: str) -> None:
+        nonlocal files
+        files.append(await download_file(client, url, folder))
+
+    async with trio.open_nursery() as nursery:
+        for url in urls:
+            nursery.start_soon(do_download, url)
+    return files
 
 
 async def download_lwjgl_files(
-    session: aiohttp.ClientSession,
+    client: httpx.AsyncClient,
     urls: list[str],
     lwjgl_folder: str,
 ) -> None:
@@ -314,7 +321,7 @@ async def download_lwjgl_files(
         log(f'"{lwjgl_folder}" does not exist, creating it.')
         os.makedirs(lwjgl_folder)
 
-    new_files = await download_files(session, urls, lwjgl_folder)
+    new_files = await download_files(client, urls, lwjgl_folder)
     log(f"{len(urls)} files downloaded.")
 
     # Make sure new files are executable
@@ -323,37 +330,18 @@ async def download_lwjgl_files(
 
 
 async def download_lwjgl3_files(
-    loop: asyncio.AbstractEventLoop,
     modules: Iterable[Module],
     lwjgl_folder: str,
     lwjgl_vers: str = "latest",
     branch: str = "release",
 ) -> None:
     """Download lwjgl 3 files given modules and lwjgl folder."""
+    await trio.lowlevel.checkpoint()
+
     urls = []
     for module in modules:
         for file_path in module.file_paths:
             urls.append(get_lwjgl_file_url(file_path, lwjgl_vers, branch))
-
-    client_timeout = aiohttp.ClientTimeout(TIMEOUT)
-
-    # # Debug trace config
-    # trace_config = aiohttp.TraceConfig()
-    # for name in (
-    #     n for n in dir(trace_config)
-    #     if n.startswith('on_') and not 'dns' in n.split('_')
-    # ):
-    #     def make_me_log(name):
-    #         log_name = ' '.join(x.title() for x in name.split('_')[1:])
-    #         async def log_thing(session, trace_config_ctx, params):
-    #             print('#'*32)
-    #             print(log_name)
-    #             print(f'\n{session = }\n')
-    #             print(f'{trace_config_ctx = }\n')
-    #             print(f'{params = }')
-    #             print('#'*32+'\n')
-    #         return log_thing
-    #     getattr(trace_config, name).append(make_me_log(name))
 
     headers = {
         "User-Agent": f"python-fixlwjgl/{__version__}",
@@ -362,20 +350,20 @@ async def download_lwjgl3_files(
     }
 
     # Make a session with our event loop
-    async with aiohttp.ClientSession(
-        loop=loop,
+    async with httpx.AsyncClient(
         headers=headers,
         # trace_configs=[trace_config],
-        timeout=client_timeout,
-    ) as session:
-        await download_lwjgl_files(session, urls, lwjgl_folder)
+        timeout=TIMEOUT,
+    ) as client:
+        await download_lwjgl_files(client, urls, lwjgl_folder)
 
 
 async def rewrite_class_path_lwjgl3(
-    loop: asyncio.AbstractEventLoop,
     class_path: list[str],
 ) -> list[str]:
     """Rewrite java class-path for lwjgl 3."""
+    await trio.lowlevel.checkpoint()
+
     handled = set()
 
     new_lwjgl = os.path.join(BASE_FOLDER, f"lwjgl_3{ARCH}")
@@ -426,16 +414,17 @@ async def rewrite_class_path_lwjgl3(
             "The following lwjgl modules were not found in "
             f'"{new_lwjgl}": {names}',
         )
-        await download_lwjgl3_files(loop, to_get, new_lwjgl, vers, "release")
+        await download_lwjgl3_files(to_get, new_lwjgl, vers, "release")
 
     return new_cls
 
 
 async def download_lwjgl2_files(
-    loop: asyncio.AbstractEventLoop,
     lwjgl_folder: str,
 ) -> None:
     """Download lwjgl 2 files from GitHub."""
+    await trio.lowlevel.checkpoint()
+
     base = f"lwjgl2{ARCH}"
     lookup_file = f"{base}/files.json"
     listing_url = get_address(
@@ -445,13 +434,11 @@ async def download_lwjgl2_files(
         f"{lookup_file}",
     )
 
-    client_timeout = aiohttp.ClientTimeout(TIMEOUT)
     # Make a session with our event loop
-    async with aiohttp.ClientSession(
-        loop=loop,
-        timeout=client_timeout,
-    ) as session:
-        listing = await download_coroutine(session, listing_url)
+    async with httpx.AsyncClient(
+        timeout=TIMEOUT,
+    ) as client:
+        listing = await download_coroutine(client, listing_url)
         paths = get_paths(json.loads(listing))
 
         urls = [
@@ -459,14 +446,15 @@ async def download_lwjgl2_files(
             for p in paths
         ]
 
-        await download_lwjgl_files(session, urls, lwjgl_folder)
+        await download_lwjgl_files(client, urls, lwjgl_folder)
 
 
 async def rewrite_class_path_lwjgl2(
-    loop: asyncio.AbstractEventLoop,
     class_path: list[str],
 ) -> list[str]:
     """Rewrite java class-path for lwjgl 2."""
+    await trio.lowlevel.checkpoint()
+
     new_lwjgl = os.path.join(BASE_FOLDER, f"lwjgl_2{ARCH}")
 
     download = False
@@ -477,7 +465,7 @@ async def rewrite_class_path_lwjgl2(
     if download:
         if ARCH in {"arm64", "arm32"}:
             log("Downloading required files...")
-            await download_lwjgl2_files(loop, new_lwjgl)
+            await download_lwjgl2_files(new_lwjgl)
         else:
             log(f'Please create "{new_lwjgl}" or run with "-noop" flag', 1)
             sys.exit(1)
@@ -544,11 +532,12 @@ def discover_lwjgl_version(version_string: str) -> int:
 
 
 async def rewrite_mc_args(
-    loop: asyncio.AbstractEventLoop,
     mc_args: list[str],
 ) -> list[str]:
     """Rewrite minecraft arguments."""
     global BASE_FOLDER  # pylint: disable=global-statement
+
+    await trio.lowlevel.checkpoint()
 
     if "-cp" not in mc_args:
         log("Missing classpath argument, skipping rewriting arguments!", 1)
@@ -585,9 +574,9 @@ async def rewrite_mc_args(
     class_path = mc_args[cls_path + 1].split(os.pathsep)
 
     if lwjgl_vers == 3:
-        class_path = await rewrite_class_path_lwjgl3(loop, class_path)
+        class_path = await rewrite_class_path_lwjgl3(class_path)
     else:
-        class_path = await rewrite_class_path_lwjgl2(loop, class_path)
+        class_path = await rewrite_class_path_lwjgl2(class_path)
 
     mc_args[cls_path + 1] = os.pathsep.join(class_path)
 
@@ -680,11 +669,7 @@ def run(args: list[str]) -> int:
         mc_args = args[1:]
         log("Not performing any class path rewrites, -noop flag given.")
     else:
-        loop = asyncio.new_event_loop()
-        try:
-            mc_args = loop.run_until_complete(rewrite_mc_args(loop, args))
-        finally:
-            loop.close()
+        mc_args = trio.run(rewrite_mc_args, args)
     return launch_mc(mc_args)
 
 
