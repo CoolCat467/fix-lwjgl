@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Games/Entertainment",
     "Operating System :: OS Independent",
+    "Framework :: Trio",
     "Typing :: Typed",
 ]
 keywords = [
@@ -32,7 +33,8 @@ keywords = [
     "wrapper-script"
 ]
 dependencies = [
-    "aiohttp~=3.9.1"
+    "trio~=0.26.0",
+    "httpx~=0.27.0",
 ]
 
 [tool.setuptools.dynamic]
@@ -76,6 +78,9 @@ warn_unused_ignores = true
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+
+[tool.codespell]
+ignore-words-list = "astroid,crasher,asend"
 
 [tool.pycln]
 all = true
@@ -192,6 +197,7 @@ legacy_tox_ini = """
     deps =
         pytest
         pytest-cov
+        pytest-trio
     commands = pytest --basetemp={envtmpdir}
 
     [testenv:mypy]
