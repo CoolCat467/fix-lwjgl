@@ -28,8 +28,12 @@ This program has been tested successfully with [ATLauncher](https://github.com/A
 on a Raspberry Pi 4 running 64 bit Raspberry Pi OS bullseye. It should work
 for 32 bit Raspberry Pi OS bullseye, but I have not tested that yet.
 
-Eagle3820 has successfully gotten this script working on an M3 Mac!
-Lolmc0587 has successfully gotten this script working on an Orange Pi 5 with Ubuntu!
+## Success testimonials
+The following ARM64 platforms have run Minecraft successfully with this script:
+- M3 Mac with macOS - [Eagle3820](https://github.com/Eagle3820)
+- [Orange Pi 5](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-5.html) with Ubuntu - [Lolmc0587](https://github.com/Lolmc0587)
+- M2 Max Mac with [Asahi Fedora Remix](https://asahilinux.org/fedora/) - [agouin](https://github.com/agouin)
+
 
 This script might also work other platforms with arm processors, but may require minor changes.
 
