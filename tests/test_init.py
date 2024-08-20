@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 
-import fix_lwjgl
 import pytest
+
+import fix_lwjgl
 
 
 def test_get_paths() -> None:
