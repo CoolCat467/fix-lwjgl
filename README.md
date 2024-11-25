@@ -108,3 +108,12 @@ Additionally, re-running Minecraft with the additional arguments
 might help diagnose your issue. Just be sure to remove them after everything is
 fixed, because OpenGL errors cause crashes in debug mode instead of just being silently
 ignored.
+
+
+### Links
+* Source Code - https://github.com/CoolCat467/fix-lwjgl.git
+* Issues      - https://github.com/CoolCat467/fix-lwjgl/issues
+
+### License
+-------
+Code and documentation are available according to the MIT License (see [LICENSE](https://github.com/CoolCat467/fix-lwjgl/blob/HEAD/LICENSE)).
