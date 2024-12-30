@@ -17,7 +17,7 @@ as well as Apple's new M series chips.
 On these devices, the wrong version of LWJGL is downloaded, preventing minecraft
 from launching properly. This program takes the arguments that would have been
 used to run Minecraft and rewrites a few details about LWJGL, pointing minecraft
-to use a user-specified folder as the LWJGL library library path for the
+to use a user-specified folder as the LWJGL library path for the
 shared object files and in the case of LWJGL 3, changing the
 java class path information to use the correct files for your machine.
 
