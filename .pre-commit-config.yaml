@@ -1,8 +1,8 @@
 ci:
   autofix_prs: true
-  autoupdate_schedule: weekly
-  skip: [badgie]
+  autoupdate_schedule: quarterly
   submodules: false
+  skip: [badgie]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -18,13 +18,6 @@ repos:
       - id: check-case-conflict
       - id: sort-simple-yaml
         files: .pre-commit-config.yaml
-  - repo: https://github.com/hadialqattan/pycln
-    rev: v2.4.0
-    hooks:
-      - id: pycln
-        args: [--config=pyproject.toml, src]
-        types: [file]
-        types_or: [python, pyi]
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 24.10.0
     hooks:
@@ -43,3 +36,13 @@ repos:
     rev: v2.3.0
     hooks:
       - id: codespell
+        additional_dependencies:
+          - tomli
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.28.4
+    hooks:
+      - id: typos
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v0.10.0
+    hooks:
+      - id: zizmor

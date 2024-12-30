@@ -35,7 +35,7 @@ from __future__ import annotations
 
 __title__ = "Fix-LWJGL"
 __author__ = "CoolCat467"
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 __license__ = "MIT"
 
 
@@ -45,10 +45,13 @@ import platform
 import subprocess
 import sys
 from configparser import ConfigParser
-from typing import Any, Final, Iterable, Iterator
+from typing import TYPE_CHECKING, Any, Final
 
 import httpx
 import trio
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
 
 HOME = os.getenv("HOME", os.path.expanduser("~"))
 XDG_DATA_HOME = os.getenv(

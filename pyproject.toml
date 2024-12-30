@@ -11,13 +11,12 @@ authors = [
 description = "Fix LWJGL (Light Weight Java Game Library) version used in Minecraft for ARM devices"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -33,8 +32,8 @@ keywords = [
     "wrapper-script"
 ]
 dependencies = [
-    "trio~=0.27.0",
-    "httpx~=0.28.0",
+    "trio~=0.28.0",
+    "httpx~=0.28.1",
 ]
 
 [tool.setuptools.dynamic]
@@ -51,7 +50,7 @@ fix_lwjgl_wrapper = "fix_lwjgl:cli_run"
 fix_lwjgl = ["py.typed"]
 
 [tool.mypy]
-mypy_path = "src"
+files = ["src/fix_lwjgl/",]
 check_untyped_defs = true
 disallow_any_decorated = true
 disallow_any_generics = true
@@ -88,7 +87,6 @@ disable_all_dunder_policy = true
 
 [tool.black]
 line-length = 79
-target-version = ['py38']
 
 [tool.ruff]
 line-length = 79
@@ -108,12 +106,16 @@ select = [
     "EXE",   # flake8-executable
     "F",     # pyflakes
     "FA",    # flake8-future-annotations
+    "FLY",   # flynt
+    "FURB",  # refurb
     "I",     # isort
+    "ICN",   # flake8-import-conventions
     "N",     # pep8-naming
     "PIE",   # flake8-pie
     "PT",    # flake8-pytest-style
     "PYI",   # flake8-pyi
     "Q",     # flake8-quotes
+    "R",     # Refactor
     "RET",   # flake8-return
     "RUF",   # Ruff-specific rules
     "S",     # flake8-bandit
@@ -125,31 +127,33 @@ select = [
     "YTT",   # flake8-2020
 ]
 extend-ignore = [
-    "E501",   # line-too-long
-    "S101",   # use of assert for tests and type narrowing
-    "D203",   # One blank line before class
-    "D204",   # blank line thing
+    "D203",   # one-blank-line-before-class
+    "D204",   # one-blank-line-after-class
     "D211",   # no-blank-line-before-class
     "D213",   # multi-line-summary-second-line
-    "SIM117", # Use multiple with statements at the same time
+    "D417",   # undocumented-param "Missing argument descriptions"
+    "E501",   # line-too-long
+    "PYI041", # redundant-numeric-union
+    "S101",   # assert (use of assert for tests and type narrowing)
+    "SIM117", # multiple-with-statements
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
     "D100",  # undocumented-public-module
     "D103",  # undocumented-public-function
-    "D107",  # Missing docstring
+    "D107",  # undocumented-public-init
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report term-missing --cov=fix_lwjgl"
+addopts = "--cov-report=term-missing --cov=fix_lwjgl"
 testpaths = [
     "tests",
 ]
 
 [tool.coverage.run]
 branch = true
-source = ["src"]
+source_pkgs = ["fix_lwjgl"]
 omit = []
 
 [tool.coverage.report]
@@ -178,16 +182,16 @@ partial_branches = [
 [tool.tox]
 legacy_tox_ini = """
     [tox]
-    envlist = py38, py39, py310, py311, py312, mypy, pytest
+    envlist = py39, py310, py311, py312, py313, mypy, pytest
     isolated_build = false
 
     [gh-actions]
     python =
-        3.8: py38, pytest, mypy
-        3.9: py39, pytest
+        3.9: py39, pytest, mypy
         3.10: py310, pytest
         3.11: py311, pytest
-        3.12: py312, pytest, mypy
+        3.12: py312, pytest
+        3.13: py313, pytest, mypy
 
     [testenv]
     setenv =
@@ -203,5 +207,5 @@ legacy_tox_ini = """
     [testenv:mypy]
     deps =
         mypy
-    commands = mypy src
+    commands = mypy
 """

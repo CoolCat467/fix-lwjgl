@@ -13,7 +13,10 @@ __version__ = "0.1.1"
 
 import json
 import os
-from typing import Any, Container
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Container
 
 
 def get_file_list(
