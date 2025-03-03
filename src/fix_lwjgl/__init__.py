@@ -2,7 +2,7 @@
 
 # Program that fixes LWJGL java class path data for Minecraft
 # MIT License
-# Copyright (c) 2022-2024 CoolCat467
+# Copyright (c) 2022-2025 CoolCat467
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ from __future__ import annotations
 
 __title__ = "Fix-LWJGL"
 __author__ = "CoolCat467"
-__version__ = "1.3.3"
+__version__ = "1.3.4"
 __license__ = "MIT"
 
 
@@ -290,9 +290,8 @@ async def download_file(
         or b"404: Not Found" in data
     ):
         raise OSError(f'"{filename}" does not exist according to "{url}"!')
-    # Could have aiofiles dependency and fix this, but I would rather not.
-    with open(filepath, "wb") as sfile:  # noqa: ASYNC230  # sync `open`
-        sfile.write(data)
+    async with await trio.open_file(filepath, "wb") as fp:
+        await fp.write(data)
     return filepath
 
 
@@ -616,12 +615,14 @@ def run(args: list[str]) -> int:
         if config.has_option("main", "lwjgl_base_path"):
             base_path = config.get("main", "lwjgl_base_path")
             BASE_FOLDER = os.path.expanduser(base_path)
-            log("Loaded lwjgl base path from config file.")
+            log(f"Loaded lwjgl base path from config file. ({BASE_FOLDER!r})")
         else:
             rewrite_config = True
         if config.has_option("main", "can_download"):
             ALLOWED_TO_DOWNLOAD = config.getboolean("main", "can_download")
-            log("Loaded if allowed to download from config file.")
+            log(
+                f"Loaded if allowed to download from config file. ({ALLOWED_TO_DOWNLOAD!r})",
+            )
         else:
             rewrite_config = True
         if config.has_option("main", "download_timeout"):
@@ -630,7 +631,7 @@ def run(args: list[str]) -> int:
                 TIMEOUT = None
             else:
                 TIMEOUT = config.getint("main", "download_timeout")
-            log("Loaded download timeout from config file.")
+            log(f"Loaded download timeout from config file. ({TIMEOUT!r})")
         else:
             rewrite_config = True
     else:
