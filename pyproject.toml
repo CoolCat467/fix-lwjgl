@@ -32,7 +32,7 @@ keywords = [
     "wrapper-script"
 ]
 dependencies = [
-    "trio~=0.31.0",
+    "trio~=0.32.0",
     "httpx~=0.28.1",
 ]
 
