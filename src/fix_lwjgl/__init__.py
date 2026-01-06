@@ -392,9 +392,9 @@ async def rewrite_class_path_lwjgl3(
         handled.add(module_name)
 
         vers_tuple = tuple(map(int, name[idx + 2].split(".")))
-        assert (
-            len(vers_tuple) == 3
-        ), "Minecraft versions have exactly 2 decimal points!"
+        assert len(vers_tuple) == 3, (
+            "Minecraft versions have exactly 2 decimal points!"
+        )
         if vers_tuple > specific_vers:
             specific_vers = vers_tuple
 

@@ -11,16 +11,17 @@ authors = [
 description = "Fix LWJGL (Light Weight Java Game Library) version used in Minecraft for ARM devices"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Games/Entertainment",
     "Operating System :: OS Independent",
@@ -46,11 +47,38 @@ version = {attr = "fix_lwjgl.__init__.__version__"}
 [project.scripts]
 fix_lwjgl_wrapper = "fix_lwjgl:cli_run"
 
+[project.optional-dependencies]
+tests = [
+    "pytest>=5.0",
+    "pytest-cov>=6.0.0",
+    "pytest-trio>=0.8.0",
+    "coverage>=7.2.5",
+]
+tools = [
+    "uv>=0.5.21",
+    "mypy>=1.19.0",
+    "ruff>=0.9.2",
+    "codespell>=2.3.0",
+    "pre-commit>=4.2.0",
+    "attrs>=25.3.0",
+]
+
 [tool.setuptools.package-data]
 fix_lwjgl = ["py.typed"]
 
+[tool.uv]
+package = true
+
 [tool.mypy]
-files = ["src/fix_lwjgl/",]
+files = [
+    "src/fix_lwjgl/",
+    "tests",
+]
+enable_error_code = [
+    "truthy-bool",
+    "mutable-override",
+    "exhaustive-match",
+]
 check_untyped_defs = true
 disallow_any_decorated = true
 disallow_any_generics = true
@@ -178,34 +206,3 @@ partial_branches = [
     "if .* or not _t.TYPE_CHECKING:",
     "if .* or not t.TYPE_CHECKING:",
 ]
-
-[tool.tox]
-legacy_tox_ini = """
-    [tox]
-    envlist = py39, py310, py311, py312, py313, mypy, pytest
-    isolated_build = false
-
-    [gh-actions]
-    python =
-        3.9: py39, pytest, mypy
-        3.10: py310, pytest
-        3.11: py311, pytest
-        3.12: py312, pytest
-        3.13: py313, pytest, mypy
-
-    [testenv]
-    setenv =
-        PYTHONPATH = {toxinidir}
-
-    [testenv:pytest]
-    deps =
-        pytest
-        pytest-cov
-        pytest-trio
-    commands = pytest --basetemp={envtmpdir}
-
-    [testenv:mypy]
-    deps =
-        mypy
-    commands = mypy
-"""
