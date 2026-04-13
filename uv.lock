@@ -247,7 +247,6 @@ dependencies = [
 
 [package.optional-dependencies]
 tests = [
-    { name = "coverage" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-trio" },
@@ -265,7 +264,6 @@ tools = [
 requires-dist = [
     { name = "attrs", marker = "extra == 'tools'", specifier = ">=26.1.0" },
     { name = "codespell", marker = "extra == 'tools'", specifier = ">=2.4.2" },
-    { name = "coverage", marker = "extra == 'tests'", specifier = ">=7.13.5" },
     { name = "httpx", specifier = "~=0.28.1" },
     { name = "mypy", marker = "extra == 'tools'", specifier = ">=1.20.0" },
     { name = "pre-commit", marker = "extra == 'tools'", specifier = ">=4.5.1" },
