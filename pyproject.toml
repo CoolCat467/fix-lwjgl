@@ -181,8 +181,6 @@ testpaths = [
 
 [tool.coverage.run]
 branch = true
-source_pkgs = ["fix_lwjgl"]
-omit = []
 
 [tool.coverage.report]
 precision = 1
