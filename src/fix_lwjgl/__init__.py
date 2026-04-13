@@ -2,7 +2,7 @@
 
 # Program that fixes LWJGL java class path data for Minecraft
 # MIT License
-# Copyright (c) 2022-2025 CoolCat467
+# Copyright (c) 2022-2026 CoolCat467
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -51,19 +51,21 @@ import httpx
 import trio
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Iterable, Iterator, Sequence
 
-HOME = os.getenv("HOME", os.path.expanduser("~"))
-XDG_DATA_HOME = os.getenv(
-    "XDG_DATA_HOME",
-    os.path.join(HOME, ".local", "share"),
+HOME = trio.Path(os.getenv("HOME", os.path.expanduser("~")))
+XDG_DATA_HOME = trio.Path(
+    os.getenv(
+        "XDG_DATA_HOME",
+        HOME / ".local" / "share",
+    ),
 )
-XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", os.path.join(HOME, ".config"))
+XDG_CONFIG_HOME = trio.Path(os.getenv("XDG_CONFIG_HOME", HOME / ".config"))
 
 FILE_TITLE = __title__.lower().replace("-", "_")
-CONFIG_PATH = os.path.join(XDG_CONFIG_HOME, FILE_TITLE)
-BASE_FOLDER = os.path.join(XDG_DATA_HOME, FILE_TITLE)
-MAIN_CONFIG = os.path.join(CONFIG_PATH, f"{FILE_TITLE}_config.ini")
+CONFIG_PATH = XDG_CONFIG_HOME / FILE_TITLE
+BASE_FOLDER = XDG_DATA_HOME / FILE_TITLE
+MAIN_CONFIG = CONFIG_PATH / f"{FILE_TITLE}_config.ini"
 ALLOWED_TO_DOWNLOAD = True
 TIMEOUT: int | None = None
 
@@ -277,12 +279,12 @@ def test_modules() -> None:
 async def download_file(
     client: httpx.AsyncClient,
     url: str,
-    folder: str,
-) -> str:
+    folder: trio.Path,
+) -> trio.Path:
     """Download files into given folder. Return file path saved to."""
     filename = url.split("/")[-1]
-    filepath = os.path.join(folder, filename)
-    if os.path.exists(filepath):
+    filepath = folder / filename
+    if await filepath.exists():
         return filepath
     data = await download_coroutine(client, url)
     if (
@@ -290,18 +292,17 @@ async def download_file(
         or b"404: Not Found" in data
     ):
         raise OSError(f'"{filename}" does not exist according to "{url}"!')
-    async with await trio.open_file(filepath, "wb") as fp:
-        await fp.write(data)
+    await filepath.write_bytes(data)
     return filepath
 
 
 async def download_files(
     client: httpx.AsyncClient,
     urls: list[str],
-    folder: str,
-) -> list[str]:
+    folder: trio.Path,
+) -> list[trio.Path]:
     """Download multiple files from given URLs into a given folder."""
-    files: list[str] = []
+    files: list[trio.Path] = []
 
     async def do_download(url: str) -> None:
         nonlocal files
@@ -316,12 +317,12 @@ async def download_files(
 async def download_lwjgl_files(
     client: httpx.AsyncClient,
     urls: list[str],
-    lwjgl_folder: str,
+    lwjgl_folder: trio.Path,
 ) -> None:
     """Download lwjgl files from URLs."""
-    if not os.path.exists(lwjgl_folder):
+    if not await lwjgl_folder.exists():
         log(f'"{lwjgl_folder}" does not exist, creating it.')
-        os.makedirs(lwjgl_folder)
+        await lwjgl_folder.mkdir()
 
     new_files = await download_files(client, urls, lwjgl_folder)
     log(f"{len(urls)} files downloaded.")
@@ -333,7 +334,7 @@ async def download_lwjgl_files(
 
 async def download_lwjgl3_files(
     modules: Iterable[Module],
-    lwjgl_folder: str,
+    lwjgl_folder: trio.Path,
     lwjgl_vers: str = "latest",
     branch: str = "release",
 ) -> None:
@@ -362,24 +363,21 @@ async def download_lwjgl3_files(
 
 async def rewrite_class_path_lwjgl3(
     class_path: list[str],
-) -> list[str]:
+) -> list[trio.Path]:
     """Rewrite java class-path for lwjgl 3."""
     await trio.lowlevel.checkpoint()
 
     handled = set()
 
-    new_lwjgl = os.path.join(BASE_FOLDER, f"lwjgl_3{ARCH}")
-    specific_vers: tuple[int, ...] = (
-        3,
-        3,
-        1,
-    )  # assume 3.3.1, newest version as of 04/21/2022
+    new_lwjgl = BASE_FOLDER / f"lwjgl_3{ARCH}"
+    # assume 3.3.1, newest version as of 04/21/2022
+    specific_vers: tuple[int, ...] = (3, 3, 1)
 
-    new_cls = []
+    new_cls: list[trio.Path] = []
     modules = []
     for elem in class_path:
         if "lwjgl" not in elem:
-            new_cls.append(elem)
+            new_cls.append(trio.Path(elem))
             continue
 
         name = elem.split(os.sep)
@@ -403,8 +401,8 @@ async def rewrite_class_path_lwjgl3(
     download = set()
     for module in modules:
         for filename in module:
-            file = os.path.join(new_lwjgl, filename)
-            if not os.path.exists(file):
+            file = new_lwjgl / filename
+            if not await file.exists():
                 download.add(module)
             new_cls.append(file)
 
@@ -414,7 +412,7 @@ async def rewrite_class_path_lwjgl3(
         vers = ".".join(map(str, specific_vers))
         log(
             "The following lwjgl modules were not found in "
-            f'"{new_lwjgl}": {names}',
+            f'"{new_lwjgl!s}": {names}',
         )
         await download_lwjgl3_files(to_get, new_lwjgl, vers, "release")
 
@@ -422,7 +420,7 @@ async def rewrite_class_path_lwjgl3(
 
 
 async def download_lwjgl2_files(
-    lwjgl_folder: str,
+    lwjgl_folder: trio.Path,
 ) -> None:
     """Download lwjgl 2 files from GitHub."""
     await trio.lowlevel.checkpoint()
@@ -433,7 +431,7 @@ async def download_lwjgl2_files(
         __author__,
         "fix-lwjgl",
         "HEAD",
-        f"{lookup_file}",
+        lookup_file,
     )
 
     # Make a session with our event loop
@@ -457,11 +455,11 @@ async def rewrite_class_path_lwjgl2(
     """Rewrite java class-path for lwjgl 2."""
     await trio.lowlevel.checkpoint()
 
-    new_lwjgl = os.path.join(BASE_FOLDER, f"lwjgl_2{ARCH}")
+    new_lwjgl = BASE_FOLDER / f"lwjgl_2{ARCH}"
 
     download = False
-    if not os.path.exists(new_lwjgl):
-        log(f'"{new_lwjgl}" does not exist!')
+    if not await new_lwjgl.exists():
+        log(f'"{new_lwjgl!s}" does not exist!')
         download = True
 
     if download:
@@ -469,7 +467,10 @@ async def rewrite_class_path_lwjgl2(
             log("Downloading required files...")
             await download_lwjgl2_files(new_lwjgl)
         else:
-            log(f'Please create "{new_lwjgl}" or run with "-noop" flag', 1)
+            log(
+                f'Please create "{new_lwjgl!s}" or run with "-noop" flag',
+                1,
+            )
             sys.exit(1)
 
     # Keeping below for the time being, but
@@ -551,16 +552,16 @@ async def rewrite_mc_args(
         raw_version = mc_args[mc_args.index("--version") + 1]
         lwjgl_vers = discover_lwjgl_version(raw_version)
 
-    lib_path: str | None = None
+    lib_path: trio.Path | None = None
     for arg in reversed(mc_args):
         if arg.startswith("-Dorg.lwjgl.librarypath="):
-            lib_path = arg.split("=", 1)[1]
+            lib_path = trio.Path(arg.split("=", 1)[1])
             break
 
     cls_path = mc_args.index("-cp")
 
     if lib_path is None:
-        lib_path = os.path.join(BASE_FOLDER, f"lwjgl_{lwjgl_vers}{ARCH}")
+        lib_path = BASE_FOLDER / f"lwjgl_{lwjgl_vers}{ARCH}"
         if lwjgl_vers == 2:
             log(
                 "LWJGL library path is not supplied, setting it to "
@@ -571,16 +572,17 @@ async def rewrite_mc_args(
             cls_path += 1
     else:
         log(f'LWJGL library path is set to "{lib_path}"')
-        BASE_FOLDER = os.path.expanduser(lib_path)
+        BASE_FOLDER = await trio.Path(lib_path).expanduser()
 
     class_path = mc_args[cls_path + 1].split(os.pathsep)
 
+    new_class_path: Sequence[str | trio.Path]
     if lwjgl_vers == 3:
-        class_path = await rewrite_class_path_lwjgl3(class_path)
+        new_class_path = await rewrite_class_path_lwjgl3(class_path)
     else:
-        class_path = await rewrite_class_path_lwjgl2(class_path)
+        new_class_path = await rewrite_class_path_lwjgl2(class_path)
 
-    mc_args[cls_path + 1] = os.pathsep.join(class_path)
+    mc_args[cls_path + 1] = os.pathsep.join(map(str, new_class_path))
 
     log(f"Rewrote lwjgl class paths for {raw_version} (LWJGL {lwjgl_vers})")
 
@@ -614,7 +616,7 @@ def run(args: list[str]) -> int:
     if config.has_section("main"):
         if config.has_option("main", "lwjgl_base_path"):
             base_path = config.get("main", "lwjgl_base_path")
-            BASE_FOLDER = os.path.expanduser(base_path)
+            BASE_FOLDER = trio.Path(os.path.expanduser(base_path))
             log(f"Loaded lwjgl base path from config file. ({BASE_FOLDER!r})")
         else:
             rewrite_config = True
